@@ -47,3 +47,51 @@ export async function createUser(req, res) {
 
   res.status(201).json(user);
 }
+
+// Lista todo mundo (inclusive inativo) — para a tela de gestão de
+// usuários. GET /api/users continua só com ativos, usado pelos seletores
+// de "responsável" nas conversas/tickets.
+export async function listAllUsers(req, res) {
+  const users = await prisma.user.findMany({
+    select: { id: true, name: true, email: true, role: true, active: true, sector: { select: { name: true } } },
+    orderBy: [{ active: "desc" }, { name: "asc" }],
+  });
+  res.json(users);
+}
+
+// Admin pode ativar/desativar qualquer um (menos a si mesmo, pra não se
+// trancar fora). Supervisor só pode mexer em Atendente — não em outro
+// Supervisor nem em Admin. É o "poder real" que separa Supervisor de
+// Atendente hoje.
+export async function setUserActive(req, res) {
+  const { active } = req.body ?? {};
+  if (typeof active !== "boolean") {
+    return res.status(400).json({ error: "Informe active (true ou false)" });
+  }
+
+  const target = await prisma.user.findUnique({ where: { id: req.params.id } });
+  if (!target) return res.status(404).json({ error: "Usuário não encontrado" });
+
+  if (target.id === req.user.sub) {
+    return res.status(400).json({ error: "Você não pode desativar sua própria conta" });
+  }
+  if (req.user.role === "SUPERVISOR" && target.role !== "AGENT") {
+    return res.status(403).json({ error: "Supervisor só pode ativar/desativar atendentes" });
+  }
+
+  const user = await prisma.user.update({
+    where: { id: req.params.id },
+    data: { active },
+    select: { id: true, name: true, email: true, role: true, active: true },
+  });
+
+  await recordAudit({
+    userId: req.user.sub,
+    action: active ? "user.activated" : "user.deactivated",
+    entityType: "User",
+    entityId: user.id,
+    metadata: { targetEmail: user.email },
+  });
+
+  res.json(user);
+}

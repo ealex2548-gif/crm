@@ -1,23 +1,34 @@
 import{useEffect,useState}from"react";
-import{createUser}from"../services/usersService";
+import{createUser,getAllUsers,setUserActive}from"../services/usersService";
 import{getAuditLogs}from"../services/auditLogService";
 import{apiFetch}from"../services/apiClient";
+import{Badge}from"../components/common/Badge";
 
 const ROLE_LABELS={ADMIN:"Administrador",SUPERVISOR:"Supervisor",AGENT:"Atendente"};
 const EMPTY_FORM={name:"",email:"",password:"",role:"AGENT",sectorId:""};
 
 export function AdminPage({user}){
 const isAdmin=user.role==="ADMIN";
+const isSupervisor=user.role==="SUPERVISOR";
+const canManageUsers=isAdmin||isSupervisor;
+
 const[sectors,setSectors]=useState([]);
 const[form,setForm]=useState(EMPTY_FORM);
 const[creating,setCreating]=useState(false);
 const[message,setMessage]=useState(null);
 const[logs,setLogs]=useState([]);
 const[logsLoading,setLogsLoading]=useState(true);
+const[users,setUsers]=useState([]);
+const[usersLoading,setUsersLoading]=useState(true);
+
+const reloadUsers=()=>canManageUsers&&getAllUsers().then((u)=>{setUsers(u);setUsersLoading(false)});
+const reloadLogs=()=>getAuditLogs().then(setLogs);
 
 useEffect(()=>{
 if(isAdmin)apiFetch("/api/sectors").then(setSectors);
 },[isAdmin]);
+
+useEffect(()=>{reloadUsers()},[canManageUsers]);
 
 useEffect(()=>{
 getAuditLogs().then((l)=>{setLogs(l);setLogsLoading(false)});
@@ -31,11 +42,24 @@ try{
 await createUser({...form,sectorId:form.sectorId||undefined});
 setMessage({type:"success",text:`Usuário ${form.name} criado com sucesso.`});
 setForm(EMPTY_FORM);
-getAuditLogs().then(setLogs);
+reloadUsers();
+reloadLogs();
 }catch(err){
 setMessage({type:"error",text:err.message});
 }finally{
 setCreating(false);
+}
+};
+
+const canToggle=(target)=>target.id!==user.id&&(isAdmin||target.role==="AGENT");
+
+const handleToggle=async(target)=>{
+try{
+await setUserActive(target.id,!target.active);
+reloadUsers();
+reloadLogs();
+}catch(err){
+setMessage({type:"error",text:err.message});
 }
 };
 
@@ -54,6 +78,21 @@ return <div className="page">
 <button className="primary" type="submit" disabled={creating}>{creating?"Criando...":"Criar usuário"}</button>
 </form>
 {message&&<div className={message.type==="error"?"login-error":"admin-success"}>{message.text}</div>}
+</div>}
+
+{canManageUsers&&<div className="panel">
+<h3>Usuários</h3>
+{usersLoading?<p>Carregando...</p>:<div className="audit-table">
+<div className="audit-row th user-row"><span>Nome</span><span>E-mail</span><span>Papel</span><span>Setor</span><span>Status</span><span></span></div>
+{users.map(u=><div className="audit-row user-row" key={u.id}>
+<span>{u.name}</span>
+<span>{u.email}</span>
+<span>{ROLE_LABELS[u.role]??u.role}</span>
+<span>{u.sector?.name??"—"}</span>
+<span><Badge tone={u.active?"success":"danger"}>{u.active?"Ativo":"Inativo"}</Badge></span>
+<span>{canToggle(u)?<button className="secondary" onClick={()=>handleToggle(u)}>{u.active?"Desativar":"Ativar"}</button>:null}</span>
+</div>)}
+</div>}
 </div>}
 
 <div className="panel">

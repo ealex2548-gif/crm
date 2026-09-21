@@ -37,8 +37,10 @@ const app = createApp();
 
 let agentToken;
 let adminToken;
+let supervisorToken;
 let contactId;
 let conversationId;
+let secondAgentId;
 
 test("health check responde ok", async () => {
   const res = await request(app).get("/health");
@@ -55,6 +57,13 @@ test("seed de usuário/setor/contato para os testes seguintes", async () => {
   await prisma.user.create({
     data: { name: "Teste Admin", email: "admin@test.com", passwordHash, role: "ADMIN", sectorId: sector.id },
   });
+  await prisma.user.create({
+    data: { name: "Teste Supervisor", email: "supervisor@test.com", passwordHash, role: "SUPERVISOR", sectorId: sector.id },
+  });
+  const secondAgent = await prisma.user.create({
+    data: { name: "Segundo Agente", email: "agente2@test.com", passwordHash, role: "AGENT", sectorId: sector.id },
+  });
+  secondAgentId = secondAgent.id;
   const contact = await prisma.contact.create({
     data: { name: "Cliente Teste", phone: "+5511999990000", company: "Empresa Teste", sectorId: sector.id },
   });
@@ -77,6 +86,12 @@ test("login do admin de teste", async () => {
   const res = await request(app).post("/api/auth/login").send({ email: "admin@test.com", password: "senha123" });
   assert.equal(res.status, 200);
   adminToken = res.body.token;
+});
+
+test("login do supervisor de teste", async () => {
+  const res = await request(app).post("/api/auth/login").send({ email: "supervisor@test.com", password: "senha123" });
+  assert.equal(res.status, 200);
+  supervisorToken = res.body.token;
 });
 
 test("rota protegida rejeita sem token", async () => {
@@ -231,4 +246,65 @@ test("agente comum não pode ver logs de auditoria (403), admin pode", async () 
   assert.ok(res.body.some((l) => l.action === "login.success"));
   assert.ok(res.body.some((l) => l.action === "ticket.created"));
   assert.ok(res.body.some((l) => l.action === "user.created"));
+});
+
+test("agente comum não acessa a lista completa de usuários (403)", async () => {
+  const res = await request(app).get("/api/users/all").set("Authorization", `Bearer ${agentToken}`);
+  assert.equal(res.status, 403);
+});
+
+test("admin e supervisor acessam a lista completa de usuários", async () => {
+  const asAdmin = await request(app).get("/api/users/all").set("Authorization", `Bearer ${adminToken}`);
+  assert.equal(asAdmin.status, 200);
+  assert.ok(asAdmin.body.length >= 5);
+
+  const asSupervisor = await request(app).get("/api/users/all").set("Authorization", `Bearer ${supervisorToken}`);
+  assert.equal(asSupervisor.status, 200);
+});
+
+test("supervisor não pode desativar admin nem outro supervisor (403)", async () => {
+  const adminMe = await request(app).get("/api/auth/me").set("Authorization", `Bearer ${adminToken}`);
+  const res = await request(app)
+    .patch(`/api/users/${adminMe.body.id}/active`)
+    .set("Authorization", `Bearer ${supervisorToken}`)
+    .send({ active: false });
+  assert.equal(res.status, 403);
+});
+
+test("supervisor pode desativar um atendente, e o atendente perde o login", async () => {
+  const res = await request(app)
+    .patch(`/api/users/${secondAgentId}/active`)
+    .set("Authorization", `Bearer ${supervisorToken}`)
+    .send({ active: false });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.active, false);
+
+  const loginAttempt = await request(app)
+    .post("/api/auth/login")
+    .send({ email: "agente2@test.com", password: "senha123" });
+  assert.equal(loginAttempt.status, 401);
+
+  // reativa pra não deixar lixo pros próximos testes
+  const reactivate = await request(app)
+    .patch(`/api/users/${secondAgentId}/active`)
+    .set("Authorization", `Bearer ${adminToken}`)
+    .send({ active: true });
+  assert.equal(reactivate.status, 200);
+});
+
+test("ninguém pode desativar a própria conta", async () => {
+  const adminMe = await request(app).get("/api/auth/me").set("Authorization", `Bearer ${adminToken}`);
+  const res = await request(app)
+    .patch(`/api/users/${adminMe.body.id}/active`)
+    .set("Authorization", `Bearer ${adminToken}`)
+    .send({ active: false });
+  assert.equal(res.status, 400);
+});
+
+test("agente comum não pode ativar/desativar ninguém (403)", async () => {
+  const res = await request(app)
+    .patch(`/api/users/${secondAgentId}/active`)
+    .set("Authorization", `Bearer ${agentToken}`)
+    .send({ active: false });
+  assert.equal(res.status, 403);
 });

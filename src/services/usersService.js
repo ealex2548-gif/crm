@@ -10,3 +10,14 @@ export async function createUser(payload) {
     body: JSON.stringify(payload),
   });
 }
+
+export async function getAllUsers() {
+  return apiFetch("/api/users/all");
+}
+
+export async function setUserActive(userId, active) {
+  return apiFetch(`/api/users/${userId}/active`, {
+    method: "PATCH",
+    body: JSON.stringify({ active }),
+  });
+}
