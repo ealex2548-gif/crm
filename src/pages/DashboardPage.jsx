@@ -1,0 +1,5 @@
+import{RefreshCw}from"lucide-react";
+
+export function DashboardPage(){
+return <div className="page"><div className="page-head"><div><h2>Dashboard</h2><p>Indicadores operacionais do suporte.</p></div><button className="secondary"><RefreshCw/>Atualizar</button></div><div className="metrics">{[["Conversas abertas","42","+12%"],["Acima do SLA","3","atenção"],["1ª resposta","2m 18s","-24%"],["Resolvidos hoje","128","+8%"],["CSAT","4,8","excelente"]].map(([a,b,c])=><div className="metric" key={a}><span>{a}</span><strong>{b}</strong><small>{c}</small></div>)}</div><div className="dash-grid"><div className="panel"><h3>Fila por setor</h3>{[["Suporte",76],["Financeiro",34],["Comercial",22],["Implantação",16]].map(([n,p])=><div className="bar" key={n}><span>{n}</span><div><i style={{width:p+"%"}}/></div><b>{p}%</b></div>)}</div><div className="panel"><h3>SLA por prioridade</h3>{[["Urgente","5 min"],["Alta","10 min"],["Normal","30 min"],["Baixa","2h"]].map(x=><div className="line" key={x[0]}><span>{x[0]}</span><b>{x[1]}</b></div>)}</div></div></div>
+}

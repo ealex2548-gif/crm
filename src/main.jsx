@@ -1,24 +1,26 @@
 
-import React,{useMemo,useState,useEffect}from"react";
+import{useMemo,useState,useEffect}from"react";
 import{createRoot}from"react-dom/client";
 import{
-MessageCircle,Users,KanbanSquare,BookOpen,BarChart3,Settings,User,Search,Plus,MoreVertical,Phone,
+MessageCircle,KanbanSquare,BookOpen,BarChart3,Settings,User,Search,Plus,MoreVertical,Phone,
 Paperclip,Camera,Send,ArrowLeft,Ticket,StickyNote,Zap,Smile,Monitor,Clock3,PanelRightClose,
-PanelRightOpen,Mic,ChevronDown,ChevronUp,CheckCircle2,Circle,Copy,Reply,Star,FilePlus2,X,
-ClipboardList,CircleAlert,Keyboard,Pin,AudioLines,FileImage,FileText,Filter,UserPlus,Shield,
-Columns3,TimerReset,MoveRight,GripVertical,CalendarClock,History,LayoutDashboard,ChartNoAxesColumnIncreasing,
-Gauge,Webhook,MessagesSquare,Workflow,WalletCards,Building2,Bell,Play,Pause,RefreshCw
+PanelRightOpen,Mic,ChevronDown,ChevronUp,CheckCircle2,Copy,Reply,Star,FilePlus2,X,
+CircleAlert,Pin,AudioLines,Columns3,LayoutDashboard,Webhook,Pause
 }from"lucide-react";
 import"./styles.css";
 import{FEATURES,VERSION}from"./config/features";
 import{contacts}from"./data/contacts";
 import{initialMessages as seed}from"./data/messages";
 import{quickReplies as quick}from"./data/quickReplies";
-import{knowledgeBase as kb}from"./data/knowledgeBase";
 import{initialTickets as ticketsSeed}from"./data/tickets";
-
-function Avatar({c,small=false}){return <div className={"avatar "+(small?"small ":"")+(c.online?"online":"")}>{c.initials}</div>}
-function Badge({children,tone=""}){return <span className={"badge "+tone}>{children}</span>}
+import{Avatar}from"./components/common/Avatar";
+import{QueuePage}from"./pages/QueuePage";
+import{KanbanPage}from"./pages/KanbanPage";
+import{TicketsPage}from"./pages/TicketsPage";
+import{DashboardPage}from"./pages/DashboardPage";
+import{ReportsPage}from"./pages/ReportsPage";
+import{KnowledgePage}from"./pages/KnowledgePage";
+import{WhatsAppPage}from"./pages/WhatsAppPage";
 
 function App(){
 const[page,setPage]=useState("atendimento");
@@ -26,7 +28,6 @@ const[activeId,setActiveId]=useState(1),[query,setQuery]=useState(""),[messages,
 const[detailsOpen,setDetailsOpen]=useState(true),[mobile,setMobile]=useState("list"),[tab,setTab]=useState("cliente");
 const[summaryOpen,setSummaryOpen]=useState(true),[quickOpen,setQuickOpen]=useState(false),[quickCat,setQuickCat]=useState("PDV");
 const[finishOpen,setFinishOpen]=useState(false),[searchChat,setSearchChat]=useState(""),[typing,setTyping]=useState(true),[audio,setAudio]=useState(false);
-const[supervisor,setSupervisor]=useState(false),[queueFilter,setQueueFilter]=useState("Todos");
 const[tickets,setTickets]=useState(ticketsSeed);
 const active=contacts.find(c=>c.id===activeId)||contacts[0];
 const filtered=useMemo(()=>contacts.filter(c=>c.name.toLowerCase().includes(query.toLowerCase())||c.company.toLowerCase().includes(query.toLowerCase())),[query]);
@@ -98,7 +99,7 @@ return <div className="shell">
 </aside>
 </div>}
 
-{page==="filas"&&FEATURES.management&&<QueuePage supervisor={supervisor} setSupervisor={setSupervisor} filter={queueFilter} setFilter={setQueueFilter}/>}
+{page==="filas"&&FEATURES.management&&<QueuePage/>}
 {page==="kanban"&&FEATURES.tickets&&<KanbanPage tickets={tickets}/>}
 {page==="tickets"&&FEATURES.tickets&&<TicketsPage tickets={tickets} setTickets={setTickets}/>}
 {page==="dashboard"&&FEATURES.dashboard&&<DashboardPage/>}
@@ -112,19 +113,5 @@ return <div className="shell">
 <div className="version">V{VERSION}</div>
 </div>
 }
-
-function QueuePage({supervisor,setSupervisor,filter,setFilter}){const sectors=["Todos","Suporte","Financeiro","Comercial","Implantação"];return <div className="page"><div className="page-head"><div><h2>Filas e distribuição</h2><p>Gestão visual da operação por setor e atendente.</p></div><label className="supervisor"><input type="checkbox" checked={supervisor} onChange={e=>setSupervisor(e.target.checked)}/><Shield/>Modo supervisor</label></div><div className="queue-filters">{sectors.map(s=><button className={filter===s?"active":""} onClick={()=>setFilter(s)} key={s}>{s}</button>)}</div><div className="cards-grid">{["Suporte","Financeiro","Comercial","Implantação"].filter(s=>filter==="Todos"||filter===s).map((s,i)=><div className="queue-card" key={s}><div className="queue-head"><strong>{s}</strong><Badge tone={i===0?"danger":"warning"}>{[31,8,5,4][i]} aguardando</Badge></div><div className="agent-row"><span>João Silva</span><b>6 ativos</b></div><div className="agent-row"><span>Ana Souza</span><b>4 ativos</b></div><div className="agent-row"><span>Carlos Lima</span><b>5 ativos</b></div><button className="wide-btn"><UserPlus/>Distribuir automaticamente</button></div>)}</div></div>}
-
-function KanbanPage({tickets}){const cols=["Novo","Em atendimento","Aguardando cliente","Finalizado"];return <div className="page"><div className="page-head"><div><h2>Kanban de chamados</h2><p>Estrutura visual para drag and drop.</p></div><button className="primary"><Plus/>Novo chamado</button></div><div className="kanban">{cols.map(c=><div className="col" key={c}><div className="col-head"><strong>{c}</strong><span>{tickets.filter(t=>t.status===c).length}</span></div>{tickets.filter(t=>t.status===c).map(t=><div className="ticket-card" key={t.id}><div className="drag"><GripVertical/></div><strong>{t.id} · {t.client}</strong><p>{t.title}</p><div className="tags"><i className={t.priority==="Urgente"||t.priority==="Alta"?"danger":"warning"}>{t.priority}</i><i>{t.owner}</i></div><small><CalendarClock/> {t.deadline}</small></div>)}</div>)}</div></div>}
-
-function TicketsPage({tickets,setTickets}){return <div className="page"><div className="page-head"><div><h2>Tickets</h2><p>Chamados ligados às conversas e mensagens.</p></div><button className="primary" onClick={()=>setTickets(t=>[{id:"#2555",client:"Novo cliente",title:"Novo chamado",status:"Novo",priority:"Normal",owner:"Sem responsável",deadline:"A definir"},...t])}><Plus/>Novo</button></div><div className="table"><div className="tr th"><span>ID</span><span>Cliente</span><span>Título</span><span>Status</span><span>Prioridade</span><span>Responsável</span><span>Prazo</span></div>{tickets.map(t=><div className="tr" key={t.id}><span>{t.id}</span><span>{t.client}</span><span>{t.title}</span><span><Badge>{t.status}</Badge></span><span><Badge tone={t.priority==="Urgente"||t.priority==="Alta"?"danger":"warning"}>{t.priority}</Badge></span><span>{t.owner}</span><span>{t.deadline}</span></div>)}</div></div>}
-
-function DashboardPage(){return <div className="page"><div className="page-head"><div><h2>Dashboard</h2><p>Indicadores operacionais do suporte.</p></div><button className="secondary"><RefreshCw/>Atualizar</button></div><div className="metrics">{[["Conversas abertas","42","+12%"],["Acima do SLA","3","atenção"],["1ª resposta","2m 18s","-24%"],["Resolvidos hoje","128","+8%"],["CSAT","4,8","excelente"]].map(([a,b,c])=><div className="metric" key={a}><span>{a}</span><strong>{b}</strong><small>{c}</small></div>)}</div><div className="dash-grid"><div className="panel"><h3>Fila por setor</h3>{[["Suporte",76],["Financeiro",34],["Comercial",22],["Implantação",16]].map(([n,p])=><div className="bar" key={n}><span>{n}</span><div><i style={{width:p+"%"}}/></div><b>{p}%</b></div>)}</div><div className="panel"><h3>SLA por prioridade</h3>{[["Urgente","5 min"],["Alta","10 min"],["Normal","30 min"],["Baixa","2h"]].map(x=><div className="line" key={x[0]}><span>{x[0]}</span><b>{x[1]}</b></div>)}</div></div></div>}
-
-function ReportsPage(){return <div className="page"><div className="page-head"><div><h2>Relatórios</h2><p>Visão visual por atendente, setor e período.</p></div><div><button className="secondary"><Filter/>Filtros</button></div></div><div className="reports"><div className="panel"><h3>Atendimentos por atendente</h3>{[["João Silva",38],["Ana Souza",31],["Carlos Lima",26]].map(([n,v])=><div className="bar" key={n}><span>{n}</span><div><i style={{width:v*2+"%"}}/></div><b>{v}</b></div>)}</div><div className="panel"><h3>Tempo médio</h3><div className="big-number">18m 42s</div><small>tempo médio de resolução</small></div><div className="panel"><h3>Clientes com mais chamados</h3>{["Mercado Silva · 12","Mercado Oliveira · 9","Padaria do João · 7"].map(x=><div className="line" key={x}>{x}</div>)}</div></div></div>}
-
-function KnowledgePage(){return <div className="page"><div className="page-head"><div><h2>Base de conhecimento</h2><p>Soluções prontas para o suporte.</p></div><button className="primary"><Plus/>Novo artigo</button></div><div className="kb-grid">{kb.map(([c,t,d])=><div className="kb-card" key={t}><Badge>{c}</Badge><h3>{t}</h3><p>{d}</p><button>Ler artigo</button></div>)}</div></div>}
-
-function WhatsAppPage(){return <div className="page"><div className="page-head"><div><h2>WhatsApp oficial</h2><p>Estrutura visual para Cloud API, templates, custos e automações.</p></div><Badge tone="success">Conectado</Badge></div><div className="wh-grid"><div className="panel"><h3>Conexão</h3><label>Número<input defaultValue="+55 92 99999-9999"/></label><label>WABA<input defaultValue="SeuCRM Suporte"/></label><label>Webhook<input defaultValue="https://seudominio.com/webhook"/></label><button className="primary"><Webhook/>Testar webhook</button></div><div className="panel"><h3>Janela de 24h</h3><div className="big-number">18h 42m</div><small>janela ativa do atendimento selecionado</small><div className="line"><span>Templates disponíveis</span><b>12</b></div><div className="line"><span>Mensagens este mês</span><b>8.420</b></div></div><div className="panel"><h3>Templates</h3>{["Retorno de suporte","Cobrança","Aviso de licença","Agendamento"].map(t=><div className="template" key={t}><MessagesSquare/><span>{t}</span><button><Play/></button></div>)}</div><div className="panel"><h3>Custo estimado</h3><div className="big-number">R$ 248,30</div><small>simulação visual mensal</small><div className="line"><span>Serviço</span><b>R$ 102,20</b></div><div className="line"><span>Utilidade</span><b>R$ 61,10</b></div><div className="line"><span>Marketing</span><b>R$ 85,00</b></div></div><div className="panel"><h3>Automações</h3>{["Boas-vindas","Ausência","Triagem por setor","SLA crítico"].map((x,i)=><label className="switch" key={x}><span>{x}</span><input type="checkbox" defaultChecked={i<3}/></label>)}</div><div className="panel"><h3>Setores</h3>{["Suporte","Financeiro","Comercial","Implantação"].map(x=><div className="line" key={x}><Building2/><span>{x}</span><b>Ativo</b></div>)}</div></div></div>}
 
 createRoot(document.getElementById("root")).render(<App/>);
