@@ -48,7 +48,7 @@ return <div className="shell">
 <main className="main">
 {page==="atendimento"&&<AtendimentoPage user={user} createTicket={createTicket} setPage={setPage}/>}
 {page==="filas"&&FEATURES.management&&<QueuePage/>}
-{page==="kanban"&&FEATURES.tickets&&<KanbanPage tickets={tickets}/>}
+{page==="kanban"&&FEATURES.tickets&&<KanbanPage tickets={tickets} updateTicketStatus={updateTicketStatus}/>}
 {page==="tickets"&&FEATURES.tickets&&<TicketsPage tickets={tickets} createTicket={createTicket} updateTicketStatus={updateTicketStatus}/>}
 {page==="dashboard"&&FEATURES.dashboard&&<DashboardPage/>}
 {page==="relatorios"&&FEATURES.dashboard&&<ReportsPage/>}

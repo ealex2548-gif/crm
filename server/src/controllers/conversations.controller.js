@@ -86,6 +86,14 @@ export async function listMessages(req, res) {
     where: { conversationId: req.params.id },
     orderBy: { createdAt: "asc" },
   });
+
+  // Abrir a conversa marca as mensagens do cliente como lidas.
+  const { count } = await prisma.message.updateMany({
+    where: { conversationId: req.params.id, direction: "IN", readAt: null },
+    data: { readAt: new Date() },
+  });
+  if (count > 0) getIO()?.emit("conversation:updated", { id: conversation.id });
+
   res.json(messages);
 }
 
@@ -113,6 +121,35 @@ export async function createMessage(req, res) {
       type,
       body: body.trim(),
       whatsappMessageId,
+      sentById: req.user.sub,
+      status: "SENT",
+    },
+  });
+
+  getIO()?.to(`conversation:${conversation.id}`).emit("message:new", message);
+  res.status(201).json(message);
+}
+
+export async function uploadMedia(req, res) {
+  if (!req.file) return res.status(400).json({ error: "Nenhum arquivo enviado" });
+
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: req.params.id },
+    include: { contact: true },
+  });
+  if (!conversation) return res.status(404).json({ error: "Conversa não encontrada" });
+
+  const mediaUrl = `/uploads/${req.file.filename}`;
+  const sent = await whatsappProvider.sendMediaMessage(conversation.contact.phone, mediaUrl);
+
+  const message = await prisma.message.create({
+    data: {
+      conversationId: conversation.id,
+      direction: "OUT",
+      type: "MEDIA",
+      body: req.file.originalname,
+      mediaUrl,
+      whatsappMessageId: sent.id,
       sentById: req.user.sub,
       status: "SENT",
     },

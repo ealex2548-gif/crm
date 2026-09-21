@@ -1,5 +1,5 @@
 import { apiFetch } from "./apiClient";
-import { priorityToDisplay, priorityToApi } from "./enumMappers";
+import { priorityToDisplay, priorityToApi, conversationStatusToDisplay, conversationStatusToApi } from "./enumMappers";
 import { formatClock, formatElapsed } from "../utils/formatTime";
 
 function initialsOf(name) {
@@ -36,7 +36,7 @@ function mapConversation(conversation) {
     db: conversation.contact.pdvDatabase ?? "",
     waiting: formatElapsed(lastMessage?.createdAt ?? conversation.createdAt),
     hasNote: false,
-    status: conversation.status,
+    status: conversationStatusToDisplay(conversation.status),
   };
 }
 
@@ -48,6 +48,7 @@ export async function getConversations() {
 export async function updateConversation(id, patch) {
   const body = { ...patch };
   if (body.priority) body.priority = priorityToApi(body.priority);
+  if (body.status) body.status = conversationStatusToApi(body.status);
   const conversation = await apiFetch(`/api/conversations/${id}`, {
     method: "PATCH",
     body: JSON.stringify(body),

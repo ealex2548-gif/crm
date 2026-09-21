@@ -6,12 +6,17 @@
  * precisa mudar no resto do backend.
  *
  * sendTextMessage(to, body) -> Promise<{ id: string }>
+ * sendMediaMessage(to, mediaUrl) -> Promise<{ id: string }>
  * verifyWebhook(query) -> string | null   (challenge do handshake da Meta)
  * parseWebhookPayload(body) -> { from, text, whatsappMessageId, timestamp }[]
  */
 export class WhatsAppProvider {
   async sendTextMessage(_to, _body) {
     throw new Error("sendTextMessage não implementado");
+  }
+
+  async sendMediaMessage(_to, _mediaUrl) {
+    throw new Error("sendMediaMessage não implementado");
   }
 
   verifyWebhook(_query) {

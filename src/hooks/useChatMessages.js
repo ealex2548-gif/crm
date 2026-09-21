@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getMessages, sendMessage as sendMessageRequest, addNote as addNoteRequest, mapMessage } from "../services/messagesService";
+import { getMessages, sendMessage as sendMessageRequest, addNote as addNoteRequest, sendMedia as sendMediaRequest, mapMessage } from "../services/messagesService";
 import { getSocket } from "../services/socket";
 
 export function useChatMessages(activeId) {
@@ -34,5 +34,10 @@ export function useChatMessages(activeId) {
     setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
   };
 
-  return { messages, sendMessage, addNote };
+  const sendMedia = async (contactId, file) => {
+    const message = await sendMediaRequest(contactId, file);
+    setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
+  };
+
+  return { messages, sendMessage, addNote, sendMedia };
 }

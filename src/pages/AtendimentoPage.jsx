@@ -2,6 +2,7 @@ import{useState,useEffect}from"react";
 import{useConversations}from"../hooks/useConversations";
 import{useChatMessages}from"../hooks/useChatMessages";
 import{getQuickReplies}from"../services/quickRepliesService";
+import{updateConversation}from"../services/conversationsService";
 import{ConversationListPanel}from"../components/atendimento/ConversationListPanel";
 import{ChatPanel}from"../components/atendimento/ChatPanel";
 import{ClientDetailsPanel}from"../components/atendimento/ClientDetailsPanel";
@@ -9,7 +10,7 @@ import{FinishServiceModal}from"../components/atendimento/FinishServiceModal";
 
 export function AtendimentoPage({createTicket,setPage}){
 const{active,activeId,setActiveId,query,setQuery,filtered,loading}=useConversations();
-const{messages,sendMessage,addNote}=useChatMessages(activeId);
+const{messages,sendMessage,addNote,sendMedia}=useChatMessages(activeId);
 const[quick,setQuick]=useState({});
 const[draft,setDraft]=useState("");
 const[detailsOpen,setDetailsOpen]=useState(true),[mobile,setMobile]=useState("list"),[tab,setTab]=useState("cliente");
@@ -27,6 +28,8 @@ const send=()=>{if(!draft.trim()||!activeId)return;sendMessage(activeId,draft);s
 const note=()=>{const t=window.prompt("Digite a nota interna:");if(activeId)addNote(activeId,t)};
 const reply=(text)=>setDraft(`Respondendo: ${text.slice(0,40)} — `);
 const ticketFromMessage=(text)=>createTicket({contactId:active.contactId,conversationId:active.id,title:text.slice(0,42),priority:active.priority,ownerId:active.assignedAgentId,deadline:null});
+const updateActiveConversation=(patch)=>activeId&&updateConversation(activeId,patch);
+const sendFile=(file)=>activeId&&sendMedia(activeId,file);
 
 if(loading)return <div className="workspace"><section className="list-panel"><div className="list-head"><h1>Carregando...</h1></div></section></div>;
 if(!active)return <div className="workspace"><section className="list-panel"><div className="list-head"><h1>Nenhuma conversa</h1></div></section></div>;
@@ -49,12 +52,13 @@ return <>
   typing={typing}
   draft={draft} setDraft={setDraft}
   onSend={send}
+  onSendFile={sendFile}
   audio={audio} setAudio={setAudio}
   onReply={reply}
   onNewTicket={ticketFromMessage}
   onFinish={()=>setFinishOpen(true)}
 />
-<ClientDetailsPanel active={active} mobile={mobile} setMobile={setMobile} tab={tab} setTab={setTab} setPage={setPage}/>
+<ClientDetailsPanel active={active} mobile={mobile} setMobile={setMobile} tab={tab} setTab={setTab} setPage={setPage} onUpdate={updateActiveConversation}/>
 </div>
 {finishOpen&&<FinishServiceModal onClose={()=>setFinishOpen(false)}/>}
 </>

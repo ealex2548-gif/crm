@@ -1,10 +1,11 @@
-import { apiFetch } from "./apiClient";
+import { apiFetch, apiUpload, API_URL } from "./apiClient";
 
 export function mapMessage(m) {
   return {
     id: m.id,
     side: m.type === "NOTE" ? "note" : m.direction === "IN" ? "in" : "out",
     text: m.body,
+    mediaUrl: m.mediaUrl ? `${API_URL}${m.mediaUrl}` : null,
     time: new Date(m.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
   };
 }
@@ -27,5 +28,12 @@ export async function addNote(conversationId, text) {
     method: "POST",
     body: JSON.stringify({ body: text, type: "NOTE" }),
   });
+  return mapMessage(message);
+}
+
+export async function sendMedia(conversationId, file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const message = await apiUpload(`/api/conversations/${conversationId}/media`, formData);
   return mapMessage(message);
 }

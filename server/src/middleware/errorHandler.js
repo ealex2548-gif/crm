@@ -4,6 +4,15 @@ export function notFoundHandler(req, res) {
 
 export function errorHandler(err, req, res, next) {
   console.error(err);
+
+  if (err.name === "MulterError") {
+    const message = err.code === "LIMIT_FILE_SIZE" ? "Arquivo maior que 10MB" : err.message;
+    return res.status(400).json({ error: message });
+  }
+  if (err.message === "Tipo de arquivo não permitido") {
+    return res.status(400).json({ error: err.message });
+  }
+
   const status = err.status ?? 500;
   res.status(status).json({ error: err.publicMessage ?? "Erro interno do servidor" });
 }

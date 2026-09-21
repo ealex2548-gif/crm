@@ -16,7 +16,19 @@ const TICKET_STATUS_TO_API = Object.fromEntries(
   Object.entries(TICKET_STATUS_TO_DISPLAY).map(([api, display]) => [display, api])
 );
 
+const CONVERSATION_STATUS_TO_DISPLAY = {
+  EM_ATENDIMENTO: "Em atendimento",
+  AGUARDANDO_CLIENTE: "Aguardando cliente",
+  AGUARDANDO_EQUIPE: "Aguardando equipe",
+  FINALIZADO: "Finalizado",
+};
+const CONVERSATION_STATUS_TO_API = Object.fromEntries(
+  Object.entries(CONVERSATION_STATUS_TO_DISPLAY).map(([api, display]) => [display, api])
+);
+
 export const priorityToDisplay = (value) => PRIORITY_TO_DISPLAY[value] ?? value;
 export const priorityToApi = (value) => PRIORITY_TO_API[value] ?? value;
 export const ticketStatusToDisplay = (value) => TICKET_STATUS_TO_DISPLAY[value] ?? value;
 export const ticketStatusToApi = (value) => TICKET_STATUS_TO_API[value] ?? value;
+export const conversationStatusToDisplay = (value) => CONVERSATION_STATUS_TO_DISPLAY[value] ?? value;
+export const conversationStatusToApi = (value) => CONVERSATION_STATUS_TO_API[value] ?? value;
