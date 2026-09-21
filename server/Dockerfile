@@ -6,6 +6,11 @@ FROM node:20-slim
 
 WORKDIR /app
 
+# node:20-slim não vem com openssl — sem ele, o `prisma generate` detecta
+# a versão errada do motor (debian-openssl-1.1.x) e o app crasha ao subir,
+# porque em runtime só existe libssl 3.0. Instalar antes do generate resolve.
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
 COPY package.json package-lock.json* ./
 RUN npm install
 
