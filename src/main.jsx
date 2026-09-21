@@ -1,19 +1,13 @@
 
-import{useMemo,useState,useEffect}from"react";
+import{useState}from"react";
 import{createRoot}from"react-dom/client";
 import{
-MessageCircle,KanbanSquare,BookOpen,BarChart3,Settings,User,Search,Plus,MoreVertical,Phone,
-Paperclip,Camera,Send,ArrowLeft,Ticket,StickyNote,Zap,Smile,Monitor,Clock3,PanelRightClose,
-PanelRightOpen,Mic,ChevronDown,ChevronUp,CheckCircle2,Copy,Reply,Star,FilePlus2,X,
-CircleAlert,Pin,AudioLines,Columns3,LayoutDashboard,Webhook,Pause
+MessageCircle,KanbanSquare,BookOpen,BarChart3,Settings,User,Columns3,LayoutDashboard,Webhook,Ticket
 }from"lucide-react";
 import"./styles.css";
 import{FEATURES,VERSION}from"./config/features";
-import{contacts}from"./data/contacts";
-import{initialMessages as seed}from"./data/messages";
-import{quickReplies as quick}from"./data/quickReplies";
 import{initialTickets as ticketsSeed}from"./data/tickets";
-import{Avatar}from"./components/common/Avatar";
+import{AtendimentoPage}from"./pages/AtendimentoPage";
 import{QueuePage}from"./pages/QueuePage";
 import{KanbanPage}from"./pages/KanbanPage";
 import{TicketsPage}from"./pages/TicketsPage";
@@ -24,22 +18,7 @@ import{WhatsAppPage}from"./pages/WhatsAppPage";
 
 function App(){
 const[page,setPage]=useState("atendimento");
-const[activeId,setActiveId]=useState(1),[query,setQuery]=useState(""),[messages,setMessages]=useState(seed),[draft,setDraft]=useState("");
-const[detailsOpen,setDetailsOpen]=useState(true),[mobile,setMobile]=useState("list"),[tab,setTab]=useState("cliente");
-const[summaryOpen,setSummaryOpen]=useState(true),[quickOpen,setQuickOpen]=useState(false),[quickCat,setQuickCat]=useState("PDV");
-const[finishOpen,setFinishOpen]=useState(false),[searchChat,setSearchChat]=useState(""),[typing,setTyping]=useState(true),[audio,setAudio]=useState(false);
 const[tickets,setTickets]=useState(ticketsSeed);
-const active=contacts.find(c=>c.id===activeId)||contacts[0];
-const filtered=useMemo(()=>contacts.filter(c=>c.name.toLowerCase().includes(query.toLowerCase())||c.company.toLowerCase().includes(query.toLowerCase())),[query]);
-
-useEffect(()=>{
-  const h=(e)=>{if(e.ctrlKey&&e.key.toLowerCase()==="k"){e.preventDefault();document.querySelector(".search input")?.focus()}if(e.ctrlKey&&e.key==="Enter")send()};
-  window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h)
-},[draft,activeId]);
-
-const send=()=>{const t=draft.trim();if(!t)return;setMessages(m=>({...m,[activeId]:[...(m[activeId]||[]),{id:Date.now(),side:"out",text:t,time:"agora"}]}));setDraft("")};
-const note=()=>{const t=window.prompt("Digite a nota interna:");if(!t)return;setMessages(m=>({...m,[activeId]:[...(m[activeId]||[]),{id:Date.now(),side:"note",text:t,time:"equipe"}]}))};
-const newTicket=(text="Novo chamado")=>setTickets(t=>[{id:"#"+(2550+t.length),client:active.company,title:text,status:"Novo",priority:active.priority,owner:active.agent,deadline:"Hoje 17:00"},...t]);
 
 const sidebar=[
 ["atendimento","Atendimento",MessageCircle],
@@ -58,47 +37,7 @@ return <div className="shell">
 </aside>
 
 <main className="main">
-{page==="atendimento"&&<div className={"workspace "+(detailsOpen?"details-open":"details-closed")}>
-<section className={"list-panel "+(mobile==="list"?"mobile-show":"")}>
-<div className="list-head">
-<div className="title-row"><h1>Conversas</h1><div><button><Plus/></button><button><MoreVertical/></button></div></div>
-<div className="search"><Search/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Pesquisar conversa (Ctrl+K)"/></div>
-<div className="filters"><span className="active">Todas</span><span>Não lidas</span><span>Meus atendimentos</span><span>SLA crítico</span></div>
-</div>
-<div className="conversations">{filtered.map(c=><button key={c.id} className={"conversation "+(c.id===activeId?"active":"")} onClick={()=>{setActiveId(c.id);setMobile("chat")}}>
-<Avatar c={c}/><div className="conv-main"><div className="conv-top"><strong>{c.name}</strong><span>{c.time}</span></div><div className="preview"><span>{c.preview}</span>{c.unread>0&&<b>{c.unread}</b>}</div><div className="waitline"><Clock3/> esperando {c.waiting}{c.hasNote&&<span>• nota interna</span>}</div><div className="tags"><i>{c.sector}</i><i className={(c.priority==="Alta"||c.priority==="Urgente")?"danger":"warning"}>{c.priority}</i><i className="muted">{c.agent.split(" ")[0]}</i><i className="sla">SLA {c.sla}</i></div></div>
-</button>)}</div>
-</section>
-
-<section className={"chat-panel "+(mobile==="chat"?"mobile-show":"")}>
-<header className="chat-head"><button className="mobile-back" onClick={()=>setMobile("list")}><ArrowLeft/></button><Avatar c={active} small/><button className="identity" onClick={()=>{setDetailsOpen(true);setMobile("details")}}><strong>{active.name}</strong><small>{active.online?"online · ":""}{active.company}</small></button><div className="chat-actions">{FEATURES.productivity&&<button onClick={()=>setSearchChat(searchChat?"":" ")}><Search/></button>}<button><Phone/></button><button className="desktop-toggle" onClick={()=>setDetailsOpen(v=>!v)}>{detailsOpen?<PanelRightClose/>:<PanelRightOpen/>}</button><button className="mobile-more" onClick={()=>setMobile("details")}><MoreVertical/></button></div></header>
-
-{FEATURES.productivity&&searchChat!==""&&<div className="chat-search"><Search/><input autoFocus placeholder="Buscar nesta conversa..." onChange={e=>setSearchChat(e.target.value)}/><button onClick={()=>setSearchChat("")}><X/></button></div>}
-
-<div className="statusbar"><span><b className="green">SLA</b> {active.sla}</span><span><b className="orange">24h</b> 18h 42m</span><span><b>Atendente</b> {active.agent}</span><span><b className="red">Prioridade</b> {active.priority}</span>{FEATURES.management&&<span><b>Fila</b> {active.sector}</span>}<button className="finish-btn" onClick={()=>setFinishOpen(true)}><CheckCircle2/>Finalizar</button></div>
-
-<div className="tools"><button className="ticket" onClick={()=>FEATURES.tickets&&setPage("tickets")}><Ticket/>#2541</button><button onClick={()=>{setDetailsOpen(true);setMobile("details")}}>⇄ Transferir</button><button onClick={note}><StickyNote/>Nota</button><button onClick={()=>setQuickOpen(v=>!v)}><Zap/>Respostas rápidas</button><button onClick={()=>setPage("base")}><BookOpen/>Base</button>{FEATURES.productivity&&<button><Pin/>Fixadas</button>}</div>
-
-<section className="messages"><div className="day">HOJE</div><div className={"summary "+(!summaryOpen?"collapsed":"")}><button onClick={()=>setSummaryOpen(v=>!v)}><span><b>☆ Resumo do caso</b><small>Última ação: cliente respondeu · Próximo passo: validar serviço</small></span>{summaryOpen?<ChevronUp/>:<ChevronDown/>}</button>{summaryOpen&&<div><p><b>Problema:</b> erro na tela de vendas.</p><p><b>Última ação:</b> solicitado print e validação local.</p><p><b>Próximo passo:</b> verificar serviço, banco e versão do PDV.</p></div>}</div>
-{(messages[activeId]||[]).filter(m=>!searchChat.trim()||m.text.toLowerCase().includes(searchChat.trim().toLowerCase())).map(m=><div key={m.id} className={"bubble-wrap "+m.side}><div className={"bubble "+m.side}>{m.side==="note"&&<b>📝 Nota interna</b>}<span>{m.text}</span><small>{m.time}{m.side==="out"?" ✓✓":""}</small></div>{FEATURES.productivity&&m.side!=="note"&&<div className="msg-actions"><button onClick={()=>setDraft(`Respondendo: ${m.text.slice(0,40)} — `)}><Reply/></button><button onClick={()=>navigator.clipboard?.writeText(m.text)}><Copy/></button><button><Star/></button><button onClick={()=>newTicket(m.text.slice(0,42))}><FilePlus2/></button></div>}</div>)}
-{FEATURES.productivity&&typing&&<div className="typing">Maria está digitando<span>•••</span></div>}
-</section>
-
-{quickOpen&&<div className="quick-popover"><div className="quick-head"><strong>Respostas rápidas</strong><button onClick={()=>setQuickOpen(false)}><X/></button></div><div className="quick-cats">{Object.keys(quick).map(k=><button className={k===quickCat?"active":""} onClick={()=>setQuickCat(k)} key={k}>{k}</button>)}</div><div className="quick-list">{quick[quickCat].map(q=><button key={q} onClick={()=>{setDraft(q);setQuickOpen(false)}}>{q}</button>)}</div></div>}
-
-<footer className="composer">{FEATURES.productivity&&<button className="plus" title="Anexos"><Plus/></button>}<div className="input"><Smile/><input value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Digite uma mensagem"/>{FEATURES.productivity&&<><Paperclip/><Camera/></>}</div>{FEATURES.productivity&&<button className={"audio "+(audio?"recording":"")} onClick={()=>setAudio(v=>!v)}>{audio?<Pause/>:<AudioLines/>}</button>}<button className="send" onClick={send}>{draft.trim()?<Send/>:<Mic/>}</button></footer>
-</section>
-
-<aside className={"details "+(mobile==="details"?"mobile-show":"")}>
-<div className="details-head"><button className="mobile-back" onClick={()=>setMobile("chat")}><ArrowLeft/></button><strong>Dados do cliente</strong></div><div className="profile"><Avatar c={active}/><h2>{active.name}</h2><p>{active.phone} · {active.company}</p></div><div className="quick"><button><MessageCircle/>Mensagem</button><button><Phone/>Ligar</button><button><Monitor/>Remoto</button><button onClick={()=>FEATURES.tickets&&setPage("tickets")}><Ticket/>Chamados</button></div>
-<div className="tabs"><button className={tab==="cliente"?"active":""} onClick={()=>setTab("cliente")}>Cliente</button><button className={tab==="pdv"?"active":""} onClick={()=>setTab("pdv")}>PDV</button><button className={tab==="checklist"?"active":""} onClick={()=>setTab("checklist")}>Checklist</button><button className={tab==="historico"?"active":""} onClick={()=>setTab("historico")}>Histórico</button></div>
-<div className="detail-scroll">{tab==="cliente"&&<><section><h3>Atendimento atual</h3><label>Responsável<select defaultValue={active.agent}><option>João Silva</option><option>Ana Souza</option><option>Carlos Lima</option></select></label><label>Setor<select defaultValue={active.sector}><option>Suporte</option><option>Financeiro</option><option>Comercial</option><option>Implantação</option></select></label><label>Status<select><option>Em atendimento</option><option>Aguardando cliente</option><option>Aguardando equipe</option><option>Finalizado</option></select></label><label>Prioridade<select defaultValue={active.priority}><option>Alta</option><option>Normal</option><option>Urgente</option></select></label></section><section><h3>Empresa</h3><label>Empresa<input value={active.company} readOnly/></label><label>Telefone<input value={active.phone} readOnly/></label><label>Cidade<input value={active.city} readOnly/></label><label>Plano<input value={active.plan} readOnly/></label></section></>}
-{tab==="pdv"&&<section><h3>Ambiente do PDV</h3><label>Versão<input value={active.version} readOnly/></label><label>Terminais<input value={active.terminals} readOnly/></label><label>Banco<input value={active.db} readOnly/></label><label>Licença<select><option>Ativa</option><option>Bloqueada</option><option>Vencida</option></select></label><label>Acesso remoto<input defaultValue="AnyDesk 123 456 789"/></label></section>}
-{tab==="checklist"&&<section><h3>Checklist visual</h3>{["Serviço do PDV","Internet / rede","Impressora","Certificado","Banco / servidor","Licença","Versão"].map((x,i)=><label className="check" key={x}><input type="checkbox" defaultChecked={i%2===0}/><span>{x}</span></label>)}</section>}
-{tab==="historico"&&<section><h3>Histórico pesquisável</h3><div className="history"><div><b>Hoje</b><span>Erro na tela de vendas</span></div><div><b>12/09/2026</b><span>Impressora sem comunicação</span></div><div><b>03/09/2026</b><span>Atualização do sistema</span></div></div></section>}<section><h3>Observação interna</h3><textarea placeholder="Adicione uma observação..."/></section></div>
-</aside>
-</div>}
-
+{page==="atendimento"&&<AtendimentoPage tickets={tickets} setTickets={setTickets} setPage={setPage}/>}
 {page==="filas"&&FEATURES.management&&<QueuePage/>}
 {page==="kanban"&&FEATURES.tickets&&<KanbanPage tickets={tickets}/>}
 {page==="tickets"&&FEATURES.tickets&&<TicketsPage tickets={tickets} setTickets={setTickets}/>}
@@ -107,8 +46,6 @@ return <div className="shell">
 {page==="base"&&<KnowledgePage/>}
 {page==="whatsapp"&&FEATURES.whatsapp&&<WhatsAppPage/>}
 </main>
-
-{finishOpen&&<div className="modal-backdrop"><div className="finish-modal"><div className="finish-head"><div><CircleAlert/><span><strong>Finalizar atendimento</strong><small>Registre o resultado antes de encerrar.</small></span></div><button onClick={()=>setFinishOpen(false)}><X/></button></div><label>Motivo<select><option>Resolvido</option><option>Orientação concluída</option><option>Sem retorno</option><option>Encaminhado</option></select></label><label>Solução aplicada<textarea placeholder="Descreva a solução..."/></label>{FEATURES.management&&<label>Categoria<select><option>PDV</option><option>Fiscal</option><option>Impressão</option><option>Financeiro</option></select></label>}<label className="checkline"><input type="checkbox" defaultChecked/> Enviar avaliação</label><div className="modal-actions"><button onClick={()=>setFinishOpen(false)}>Cancelar</button><button className="confirm" onClick={()=>setFinishOpen(false)}>Finalizar</button></div></div></div>}
 
 <div className="version">V{VERSION}</div>
 </div>
