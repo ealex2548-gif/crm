@@ -2,7 +2,7 @@
 import{useState}from"react";
 import{createRoot}from"react-dom/client";
 import{
-MessageCircle,KanbanSquare,BookOpen,BarChart3,Settings,Columns3,LayoutDashboard,Webhook,Ticket,LogOut
+MessageCircle,KanbanSquare,BookOpen,BarChart3,Settings,Columns3,LayoutDashboard,Webhook,Ticket,LogOut,ShieldCheck
 }from"lucide-react";
 import"./styles.css";
 import{FEATURES,VERSION}from"./config/features";
@@ -17,6 +17,7 @@ import{DashboardPage}from"./pages/DashboardPage";
 import{ReportsPage}from"./pages/ReportsPage";
 import{KnowledgePage}from"./pages/KnowledgePage";
 import{WhatsAppPage}from"./pages/WhatsAppPage";
+import{AdminPage}from"./pages/AdminPage";
 
 function Root(){
 const{user,loading,logout}=useAuth();
@@ -28,6 +29,7 @@ return <App user={user} onLogout={logout}/>;
 function App({user,onLogout}){
 const[page,setPage]=useState("atendimento");
 const{tickets,createTicket,updateTicketStatus,loading:ticketsLoading}=useTickets();
+const canSeeAdmin=user.role==="ADMIN"||user.role==="SUPERVISOR";
 
 const sidebar=[
 ["atendimento","Atendimento",MessageCircle],
@@ -36,6 +38,7 @@ const sidebar=[
 ...(FEATURES.dashboard?[["dashboard","Dashboard",LayoutDashboard],["relatorios","Relatórios",BarChart3]]:[]),
 ["base","Base",BookOpen],
 ...(FEATURES.whatsapp?[["whatsapp","WhatsApp",Webhook]]:[]),
+...(canSeeAdmin?[["admin","Administração",ShieldCheck]]:[]),
 ];
 
 return <div className="shell">
@@ -54,6 +57,7 @@ return <div className="shell">
 {page==="relatorios"&&FEATURES.dashboard&&<ReportsPage/>}
 {page==="base"&&<KnowledgePage/>}
 {page==="whatsapp"&&FEATURES.whatsapp&&<WhatsAppPage/>}
+{page==="admin"&&canSeeAdmin&&<AdminPage user={user}/>}
 </main>
 
 <div className="version">V{VERSION}</div>
