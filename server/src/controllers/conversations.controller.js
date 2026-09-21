@@ -3,6 +3,7 @@ import { getIO } from "../websocket/index.js";
 import { whatsappProvider } from "../services/whatsapp/index.js";
 import { PRIORITIES, CONVERSATION_STATUSES, MESSAGE_TYPES } from "../constants/enums.js";
 import { recordAudit } from "../services/auditLog.js";
+import { computeSla } from "../constants/sla.js";
 
 function serializeConversation(conversation) {
   const lastMessage = conversation.messages?.[0];
@@ -19,6 +20,7 @@ function serializeConversation(conversation) {
       ? { body: lastMessage.body, type: lastMessage.type, createdAt: lastMessage.createdAt }
       : null,
     unreadCount: conversation.unreadCount ?? 0,
+    sla: computeSla(conversation.priority, lastMessage),
     createdAt: conversation.createdAt,
   };
 }
@@ -72,7 +74,12 @@ export async function updateConversation(req, res) {
       ...(sectorId !== undefined && { sectorId }),
       ...(assignedAgentId !== undefined && { assignedAgentId }),
     },
-    include: { contact: true, sector: true, assignedAgent: true },
+    include: {
+      contact: true,
+      sector: true,
+      assignedAgent: true,
+      messages: { orderBy: { createdAt: "desc" }, take: 1 },
+    },
   });
 
   await recordAudit({
@@ -83,8 +90,9 @@ export async function updateConversation(req, res) {
     metadata: { priority, status, sectorId, assignedAgentId },
   });
 
-  getIO()?.to(`conversation:${conversation.id}`).emit("conversation:updated", conversation);
-  res.json(conversation);
+  const serialized = serializeConversation(conversation);
+  getIO()?.to(`conversation:${conversation.id}`).emit("conversation:updated", serialized);
+  res.json(serialized);
 }
 
 export async function listMessages(req, res) {

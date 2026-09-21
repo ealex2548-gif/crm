@@ -1,6 +1,6 @@
 import { apiFetch } from "./apiClient";
 import { priorityToDisplay, priorityToApi, conversationStatusToDisplay, conversationStatusToApi } from "./enumMappers";
-import { formatClock, formatElapsed } from "../utils/formatTime";
+import { formatClock, formatElapsed, formatSla } from "../utils/formatTime";
 
 function initialsOf(name) {
   const parts = name.trim().split(/\s+/);
@@ -26,7 +26,8 @@ function mapConversation(conversation) {
     priority: priorityToDisplay(conversation.priority),
     agent: conversation.assignedAgent?.name ?? "Sem responsável",
     assignedAgentId: conversation.assignedAgent?.id ?? null,
-    sla: "—",
+    sla: formatSla(conversation.sla),
+    slaStatus: conversation.sla?.status ?? "ok",
     unread: conversation.unreadCount,
     online: false,
     city: conversation.contact.city ?? "",

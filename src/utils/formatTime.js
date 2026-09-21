@@ -13,3 +13,17 @@ export function formatElapsed(isoDate) {
   const remainingMinutes = minutes % 60;
   return remainingMinutes ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
 }
+
+export function formatDurationMinutes(minutes) {
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+}
+
+// sla vem de computeSla() no backend: { status: "ok"|"running"|"breached", minutesRemaining }
+export function formatSla(sla) {
+  if (!sla || sla.status === "ok" || sla.minutesRemaining == null) return "—";
+  if (sla.status === "breached") return `Estourado há ${formatDurationMinutes(-sla.minutesRemaining)}`;
+  return formatDurationMinutes(sla.minutesRemaining);
+}

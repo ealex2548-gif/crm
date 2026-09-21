@@ -328,3 +328,56 @@ test("trocar a própria senha exige a senha atual correta", async () => {
   const loginNew = await request(app).post("/api/auth/login").send({ email: "agente@test.com", password: "novaSenha123" });
   assert.equal(loginNew.status, 200);
 });
+
+test("SLA: última mensagem do cliente conta o prazo, resposta do agente zera", async () => {
+  agentToken = (
+    await request(app).post("/api/auth/login").send({ email: "agente@test.com", password: "novaSenha123" })
+  ).body.token;
+
+  const conv = await prisma.conversation.create({
+    data: { contactId, priority: "URGENTE", status: "EM_ATENDIMENTO" },
+  });
+
+  // 20 min atrás — já estoura o SLA de urgente (15 min)
+  await prisma.message.create({
+    data: {
+      conversationId: conv.id,
+      direction: "IN",
+      type: "TEXT",
+      body: "Preciso de ajuda urgente",
+      createdAt: new Date(Date.now() - 20 * 60 * 1000),
+    },
+  });
+
+  const beforeReply = await request(app).get("/api/conversations").set("Authorization", `Bearer ${agentToken}`);
+  const convBefore = beforeReply.body.find((c) => c.id === conv.id);
+  assert.equal(convBefore.sla.status, "breached");
+  assert.ok(convBefore.sla.minutesRemaining < 0);
+
+  await request(app)
+    .post(`/api/conversations/${conv.id}/messages`)
+    .set("Authorization", `Bearer ${agentToken}`)
+    .send({ body: "Já estou verificando" });
+
+  const afterReply = await request(app).get("/api/conversations").set("Authorization", `Bearer ${agentToken}`);
+  const convAfter = afterReply.body.find((c) => c.id === conv.id);
+  assert.equal(convAfter.sla.status, "ok");
+});
+
+test("dashboard e relatórios: agente comum é bloqueado (403), admin recebe dados reais", async () => {
+  const forbiddenDash = await request(app).get("/api/dashboard/summary").set("Authorization", `Bearer ${agentToken}`);
+  assert.equal(forbiddenDash.status, 403);
+  const forbiddenRep = await request(app).get("/api/reports/summary").set("Authorization", `Bearer ${agentToken}`);
+  assert.equal(forbiddenRep.status, 403);
+
+  const dash = await request(app).get("/api/dashboard/summary").set("Authorization", `Bearer ${adminToken}`);
+  assert.equal(dash.status, 200);
+  assert.ok(dash.body.openConversations >= 0);
+  assert.ok(Array.isArray(dash.body.queueBySector));
+  assert.deepEqual(dash.body.slaPolicy, { URGENTE: 15, ALTA: 30, NORMAL: 120, BAIXA: 480 });
+
+  const rep = await request(app).get("/api/reports/summary").set("Authorization", `Bearer ${adminToken}`);
+  assert.equal(rep.status, 200);
+  assert.ok(Array.isArray(rep.body.attendancesByAgent));
+  assert.ok(Array.isArray(rep.body.topClients));
+});
