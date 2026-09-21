@@ -8,7 +8,7 @@ import{ChatPanel}from"../components/atendimento/ChatPanel";
 import{ClientDetailsPanel}from"../components/atendimento/ClientDetailsPanel";
 import{FinishServiceModal}from"../components/atendimento/FinishServiceModal";
 
-export function AtendimentoPage({createTicket,setPage}){
+export function AtendimentoPage({createTicket,setPage,ticketsPageTarget="tickets"}){
 const{active,activeId,setActiveId,query,setQuery,filtered,loading}=useConversations();
 const{messages,sendMessage,addNote,sendMedia}=useChatMessages(activeId);
 const[quick,setQuick]=useState({});
@@ -43,6 +43,7 @@ return <>
   detailsOpen={detailsOpen} setDetailsOpen={setDetailsOpen}
   searchChat={searchChat} setSearchChat={setSearchChat}
   setPage={setPage}
+  ticketsPageTarget={ticketsPageTarget}
   onNote={note}
   quickOpen={quickOpen} setQuickOpen={setQuickOpen}
   quickCat={quickCat} setQuickCat={setQuickCat}
@@ -58,7 +59,7 @@ return <>
   onNewTicket={ticketFromMessage}
   onFinish={()=>setFinishOpen(true)}
 />
-<ClientDetailsPanel active={active} mobile={mobile} setMobile={setMobile} tab={tab} setTab={setTab} setPage={setPage} onUpdate={updateActiveConversation}/>
+<ClientDetailsPanel active={active} mobile={mobile} setMobile={setMobile} tab={tab} setTab={setTab} setPage={setPage} ticketsPageTarget={ticketsPageTarget} onUpdate={updateActiveConversation}/>
 </div>
 {finishOpen&&<FinishServiceModal onClose={()=>setFinishOpen(false)}/>}
 </>

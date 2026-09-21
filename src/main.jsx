@@ -30,14 +30,19 @@ function App({user,onLogout}){
 const[page,setPage]=useState("atendimento");
 const{tickets,createTicket,updateTicketStatus,loading:ticketsLoading}=useTickets();
 const canSeeAdmin=user.role==="ADMIN"||user.role==="SUPERVISOR";
+// Atendente só atende: fica com Atendimento, Filas, Kanban e Base.
+// Gestão de tickets em tabela, métricas e configuração ficam pra
+// Supervisor/Admin.
+const canSeeManagement=user.role!=="AGENT";
+const ticketsPageTarget=canSeeManagement?"tickets":"kanban";
 
 const sidebar=[
 ["atendimento","Atendimento",MessageCircle],
 ...(FEATURES.management?[["filas","Filas",Columns3]]:[]),
-...(FEATURES.tickets?[["kanban","Kanban",KanbanSquare],["tickets","Tickets",Ticket]]:[]),
-...(FEATURES.dashboard?[["dashboard","Dashboard",LayoutDashboard],["relatorios","Relatórios",BarChart3]]:[]),
+...(FEATURES.tickets?[["kanban","Kanban",KanbanSquare],...(canSeeManagement?[["tickets","Tickets",Ticket]]:[])]:[]),
+...(FEATURES.dashboard&&canSeeManagement?[["dashboard","Dashboard",LayoutDashboard],["relatorios","Relatórios",BarChart3]]:[]),
 ["base","Base",BookOpen],
-...(FEATURES.whatsapp?[["whatsapp","WhatsApp",Webhook]]:[]),
+...(FEATURES.whatsapp&&canSeeManagement?[["whatsapp","WhatsApp",Webhook]]:[]),
 ...(canSeeAdmin?[["admin","Administração",ShieldCheck]]:[]),
 ];
 
@@ -49,14 +54,14 @@ return <div className="shell">
 </aside>
 
 <main className="main">
-{page==="atendimento"&&<AtendimentoPage user={user} createTicket={createTicket} setPage={setPage}/>}
+{page==="atendimento"&&<AtendimentoPage user={user} createTicket={createTicket} setPage={setPage} ticketsPageTarget={ticketsPageTarget}/>}
 {page==="filas"&&FEATURES.management&&<QueuePage/>}
 {page==="kanban"&&FEATURES.tickets&&<KanbanPage tickets={tickets} updateTicketStatus={updateTicketStatus}/>}
-{page==="tickets"&&FEATURES.tickets&&<TicketsPage tickets={tickets} createTicket={createTicket} updateTicketStatus={updateTicketStatus}/>}
-{page==="dashboard"&&FEATURES.dashboard&&<DashboardPage/>}
-{page==="relatorios"&&FEATURES.dashboard&&<ReportsPage/>}
+{page==="tickets"&&FEATURES.tickets&&canSeeManagement&&<TicketsPage tickets={tickets} createTicket={createTicket} updateTicketStatus={updateTicketStatus}/>}
+{page==="dashboard"&&FEATURES.dashboard&&canSeeManagement&&<DashboardPage/>}
+{page==="relatorios"&&FEATURES.dashboard&&canSeeManagement&&<ReportsPage/>}
 {page==="base"&&<KnowledgePage/>}
-{page==="whatsapp"&&FEATURES.whatsapp&&<WhatsAppPage/>}
+{page==="whatsapp"&&FEATURES.whatsapp&&canSeeManagement&&<WhatsAppPage/>}
 {page==="admin"&&canSeeAdmin&&<AdminPage user={user}/>}
 </main>
 
