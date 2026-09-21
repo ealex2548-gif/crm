@@ -2,15 +2,31 @@ import { Server } from "socket.io";
 import { verifyToken } from "../utils/jwt.js";
 import { env } from "../config/env.js";
 
+let ioInstance;
+
 /**
- * Eventos previstos (a implementar junto com as rotas de conversas/tickets):
- *   server -> client: "message:new", "conversation:updated", "ticket:updated"
- *   client -> server: "conversation:join", "conversation:typing"
+ * Instância do Socket.io usada pelos controllers para emitir eventos
+ * (ex: "message:new" ao criar uma mensagem). É `undefined` até
+ * createWebSocketServer rodar — por isso os controllers sempre chamam
+ * com `getIO()?.emit(...)`.
+ */
+export function getIO() {
+  return ioInstance;
+}
+
+/**
+ * Eventos emitidos:
+ *   "message:new"          -> sala "conversation:<id>"
+ *   "conversation:updated" -> sala "conversation:<id>"
+ *   "ticket:updated"       -> broadcast geral (Kanban/Tickets não têm sala própria ainda)
+ * Eventos recebidos:
+ *   "conversation:join" (conversationId) -> entra na sala da conversa
  */
 export function createWebSocketServer(httpServer) {
   const io = new Server(httpServer, {
     cors: { origin: env.corsOrigin },
   });
+  ioInstance = io;
 
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token;
