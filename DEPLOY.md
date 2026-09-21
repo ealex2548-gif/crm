@@ -133,8 +133,37 @@ docker compose exec backend npm run prisma:deploy
 
 Tudo que importa (banco SQLite + arquivos enviados no chat) vive em
 `server/data/` no host da VPS — é o volume montado no `docker-compose.yml`.
-A Hostinger já faz backup semanal da VPS inteira (vi no painel), mas vale
-reforçar com um backup próprio dessa pasta específica também.
+A Hostinger já faz backup semanal da VPS inteira (vi no painel), mas isso
+só te salva de perder a VPS inteira — não de um erro de aplicação apagar
+ou corromper dado sem derrubar o servidor. Por isso, backup próprio e mais
+frequente dessa pasta:
+
+**Configurar backup diário automático:**
+
+```bash
+chmod +x server/scripts/backup.sh server/scripts/restore.sh
+(crontab -l 2>/dev/null; echo "0 3 * * * /root/seucrm/server/scripts/backup.sh") | crontab -
+```
+
+Isso roda `server/scripts/backup.sh` todo dia às 3h, salvando em
+`/root/backups/seucrm/` e mantendo os últimos 7 dias automaticamente.
+
+**Rodar manualmente (pra testar, ou antes de uma mudança arriscada):**
+```bash
+server/scripts/backup.sh
+```
+
+**Restaurar um backup:**
+```bash
+server/scripts/restore.sh /root/backups/seucrm/seucrm-data-AAAAMMDD-HHMMSS.tar.gz
+```
+(pede confirmação antes de sobrescrever, e reinicia os containers sozinho)
+
+**Backup fora da VPS** (recomendado, protege contra perda total da VPS):
+o script salva localmente na própria VPS por padrão. Pra guardar uma cópia
+em outro lugar também (outro servidor, um serviço tipo Backblaze B2/S3),
+me avisa quando quiser configurar — precisa de uma conta nesse serviço
+externo primeiro.
 
 ## Quando você tiver um domínio
 
