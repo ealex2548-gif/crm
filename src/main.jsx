@@ -6,7 +6,7 @@ MessageCircle,KanbanSquare,BookOpen,BarChart3,Settings,User,Columns3,LayoutDashb
 }from"lucide-react";
 import"./styles.css";
 import{FEATURES,VERSION}from"./config/features";
-import{initialTickets as ticketsSeed}from"./data/tickets";
+import{useTickets}from"./hooks/useTickets";
 import{AtendimentoPage}from"./pages/AtendimentoPage";
 import{QueuePage}from"./pages/QueuePage";
 import{KanbanPage}from"./pages/KanbanPage";
@@ -18,7 +18,7 @@ import{WhatsAppPage}from"./pages/WhatsAppPage";
 
 function App(){
 const[page,setPage]=useState("atendimento");
-const[tickets,setTickets]=useState(ticketsSeed);
+const{tickets,setTickets,createTicket}=useTickets();
 
 const sidebar=[
 ["atendimento","Atendimento",MessageCircle],
@@ -37,7 +37,7 @@ return <div className="shell">
 </aside>
 
 <main className="main">
-{page==="atendimento"&&<AtendimentoPage tickets={tickets} setTickets={setTickets} setPage={setPage}/>}
+{page==="atendimento"&&<AtendimentoPage createTicket={createTicket} setPage={setPage}/>}
 {page==="filas"&&FEATURES.management&&<QueuePage/>}
 {page==="kanban"&&FEATURES.tickets&&<KanbanPage tickets={tickets}/>}
 {page==="tickets"&&FEATURES.tickets&&<TicketsPage tickets={tickets} setTickets={setTickets}/>}

@@ -1,30 +1,29 @@
-import{useMemo,useState,useEffect}from"react";
-import{contacts}from"../data/contacts";
-import{initialMessages}from"../data/messages";
-import{quickReplies}from"../data/quickReplies";
+import{useState,useEffect}from"react";
+import{useConversations}from"../hooks/useConversations";
+import{useChatMessages}from"../hooks/useChatMessages";
+import{getQuickReplies}from"../services/quickRepliesService";
 import{ConversationListPanel}from"../components/atendimento/ConversationListPanel";
 import{ChatPanel}from"../components/atendimento/ChatPanel";
 import{ClientDetailsPanel}from"../components/atendimento/ClientDetailsPanel";
 import{FinishServiceModal}from"../components/atendimento/FinishServiceModal";
 
-export function AtendimentoPage({tickets,setTickets,setPage}){
-const[activeId,setActiveId]=useState(1),[query,setQuery]=useState(""),[messages,setMessages]=useState(initialMessages),[draft,setDraft]=useState("");
+export function AtendimentoPage({createTicket,setPage}){
+const{active,activeId,setActiveId,query,setQuery,filtered}=useConversations();
+const{messages,sendMessage,addNote}=useChatMessages();
+const[draft,setDraft]=useState("");
 const[detailsOpen,setDetailsOpen]=useState(true),[mobile,setMobile]=useState("list"),[tab,setTab]=useState("cliente");
 const[summaryOpen,setSummaryOpen]=useState(true),[quickOpen,setQuickOpen]=useState(false),[quickCat,setQuickCat]=useState("PDV");
 const[finishOpen,setFinishOpen]=useState(false),[searchChat,setSearchChat]=useState(""),[typing]=useState(true),[audio,setAudio]=useState(false);
-const active=contacts.find(c=>c.id===activeId)||contacts[0];
-const filtered=useMemo(()=>contacts.filter(c=>c.name.toLowerCase().includes(query.toLowerCase())||c.company.toLowerCase().includes(query.toLowerCase())),[query]);
 
 useEffect(()=>{
   const h=(e)=>{if(e.ctrlKey&&e.key.toLowerCase()==="k"){e.preventDefault();document.querySelector(".search input")?.focus()}if(e.ctrlKey&&e.key==="Enter")send()};
   window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h)
 },[draft,activeId]);
 
-const send=()=>{const t=draft.trim();if(!t)return;setMessages(m=>({...m,[activeId]:[...(m[activeId]||[]),{id:Date.now(),side:"out",text:t,time:"agora"}]}));setDraft("")};
-const note=()=>{const t=window.prompt("Digite a nota interna:");if(!t)return;setMessages(m=>({...m,[activeId]:[...(m[activeId]||[]),{id:Date.now(),side:"note",text:t,time:"equipe"}]}))};
-const newTicket=(text="Novo chamado")=>setTickets(t=>[{id:"#"+(2550+t.length),client:active.company,title:text,status:"Novo",priority:active.priority,owner:active.agent,deadline:"Hoje 17:00"},...t]);
+const send=()=>{if(!draft.trim())return;sendMessage(activeId,draft);setDraft("")};
+const note=()=>{const t=window.prompt("Digite a nota interna:");addNote(activeId,t)};
 const reply=(text)=>setDraft(`Respondendo: ${text.slice(0,40)} — `);
-const ticketFromMessage=(text)=>newTicket(text.slice(0,42));
+const ticketFromMessage=(text)=>createTicket({client:active.company,title:text.slice(0,42),priority:active.priority,owner:active.agent,deadline:"Hoje 17:00"});
 
 return <>
 <div className={"workspace "+(detailsOpen?"details-open":"details-closed")}>
@@ -38,7 +37,7 @@ return <>
   onNote={note}
   quickOpen={quickOpen} setQuickOpen={setQuickOpen}
   quickCat={quickCat} setQuickCat={setQuickCat}
-  quick={quickReplies}
+  quick={getQuickReplies()}
   messages={messages[activeId]||[]}
   summaryOpen={summaryOpen} setSummaryOpen={setSummaryOpen}
   typing={typing}
