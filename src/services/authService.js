@@ -16,6 +16,13 @@ export async function fetchCurrentUser() {
   return apiFetch("/api/auth/me");
 }
 
+export async function changeMyPassword(currentPassword, newPassword) {
+  return apiFetch("/api/auth/me/password", {
+    method: "PATCH",
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+}
+
 export function restoreSession() {
   const token = localStorage.getItem(STORAGE_KEY);
   if (token) setAuthToken(token);

@@ -308,3 +308,23 @@ test("agente comum não pode ativar/desativar ninguém (403)", async () => {
     .send({ active: false });
   assert.equal(res.status, 403);
 });
+
+test("trocar a própria senha exige a senha atual correta", async () => {
+  const wrong = await request(app)
+    .patch("/api/auth/me/password")
+    .set("Authorization", `Bearer ${agentToken}`)
+    .send({ currentPassword: "senhaErrada", newPassword: "novaSenha123" });
+  assert.equal(wrong.status, 401);
+
+  const ok = await request(app)
+    .patch("/api/auth/me/password")
+    .set("Authorization", `Bearer ${agentToken}`)
+    .send({ currentPassword: "senha123", newPassword: "novaSenha123" });
+  assert.equal(ok.status, 200);
+
+  const loginOld = await request(app).post("/api/auth/login").send({ email: "agente@test.com", password: "senha123" });
+  assert.equal(loginOld.status, 401);
+
+  const loginNew = await request(app).post("/api/auth/login").send({ email: "agente@test.com", password: "novaSenha123" });
+  assert.equal(loginNew.status, 200);
+});

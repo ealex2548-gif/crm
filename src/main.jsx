@@ -18,6 +18,7 @@ import{ReportsPage}from"./pages/ReportsPage";
 import{KnowledgePage}from"./pages/KnowledgePage";
 import{WhatsAppPage}from"./pages/WhatsAppPage";
 import{AdminPage}from"./pages/AdminPage";
+import{ProfileModal}from"./components/ProfileModal";
 
 function Root(){
 const{user,loading,logout}=useAuth();
@@ -28,6 +29,7 @@ return <App user={user} onLogout={logout}/>;
 
 function App({user,onLogout}){
 const[page,setPage]=useState("atendimento");
+const[profileOpen,setProfileOpen]=useState(false);
 const{tickets,createTicket,updateTicketStatus,loading:ticketsLoading}=useTickets();
 const canSeeAdmin=user.role==="ADMIN"||user.role==="SUPERVISOR";
 // Atendente só atende: fica com Atendimento, Filas, Kanban e Base.
@@ -50,7 +52,7 @@ return <div className="shell">
 <aside className="sidebar">
 <div className="logo"><MessageCircle/></div>
 <nav>{sidebar.map(([k,label,I])=><button className={page===k?"active":""} onClick={()=>setPage(k)} key={k}><I/><small>{label}</small>{k==="atendimento"&&<em>12</em>}</button>)}</nav>
-<div className="side-bottom"><button title={user.name}><Settings/><small>Config</small></button><button onClick={onLogout} title={`Sair (${user.name})`}><LogOut/><small>Sair</small></button></div>
+<div className="side-bottom"><button title={user.name} onClick={()=>setProfileOpen(true)}><Settings/><small>Config</small></button><button onClick={onLogout} title={`Sair (${user.name})`}><LogOut/><small>Sair</small></button></div>
 </aside>
 
 <main className="main">
@@ -66,6 +68,7 @@ return <div className="shell">
 </main>
 
 <div className="version">V{VERSION}</div>
+{profileOpen&&<ProfileModal user={user} onClose={()=>setProfileOpen(false)}/>}
 </div>
 }
 
