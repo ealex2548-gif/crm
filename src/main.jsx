@@ -10,46 +10,12 @@ Columns3,TimerReset,MoveRight,GripVertical,CalendarClock,History,LayoutDashboard
 Gauge,Webhook,MessagesSquare,Workflow,WalletCards,Building2,Bell,Play,Pause,RefreshCw
 }from"lucide-react";
 import"./styles.css";
-
-const FEATURES={"productivity": true, "management": true, "tickets": true, "dashboard": true, "whatsapp": true};
-const VERSION="5.7";
-
-const contacts=[
-{id:1,name:"Maria Oliveira",initials:"MO",company:"Mercado Oliveira",phone:"+55 92 99999-9999",preview:"Olá, preciso de ajuda com o PDV...",time:"10:24",sector:"Suporte",priority:"Alta",agent:"João Silva",sla:"06:42",unread:1,online:true,city:"Itacoatiara/AM",plan:"PDV+",version:"0.5.14",terminals:"2",db:"Firebird",waiting:"2 min",hasNote:true},
-{id:2,name:"Carlos Mendes",initials:"CM",company:"Carlos Mendes ME",phone:"+55 92 98888-1111",preview:"Conseguiu resolver? Obrigado!",time:"10:20",sector:"Financeiro",priority:"Normal",agent:"Ana Souza",sla:"12:30",unread:0,online:false,city:"Manaus/AM",plan:"PDV",version:"0.5.13",terminals:"1",db:"Firebird",waiting:"18 min",hasNote:false},
-{id:3,name:"Mercado Silva",initials:"MS",company:"Mercado Silva",phone:"+55 92 97777-2222",preview:"Precisamos de suporte urgente",time:"09:15",sector:"Suporte",priority:"Urgente",agent:"Carlos Lima",sla:"02:10",unread:4,online:true,city:"Coari/AM",plan:"PDV+",version:"0.5.14",terminals:"3",db:"PostgreSQL",waiting:"25 min",hasNote:true},
-{id:4,name:"Padaria do João",initials:"PJ",company:"Padaria do João",phone:"+55 92 96666-3333",preview:"Enviei a foto da impressora",time:"08:58",sector:"Implantação",priority:"Normal",agent:"João Silva",sla:"20:00",unread:0,online:false,city:"Manaus/AM",plan:"PDV",version:"0.5.14",terminals:"2",db:"Firebird",waiting:"1h 10m",hasNote:false},
-{id:5,name:"Restaurante Sabor",initials:"RS",company:"Restaurante Sabor",phone:"+55 92 95555-4444",preview:"Quero saber do plano PDV+",time:"08:33",sector:"Comercial",priority:"Normal",agent:"Ana Souza",sla:"—",unread:0,online:true,city:"Itacoatiara/AM",plan:"PDV+",version:"0.5.14",terminals:"2",db:"Firebird",waiting:"—",hasNote:false},
-];
-
-const seed={
-1:[{id:1,side:"in",text:"Olá, preciso de ajuda com o PDV. Ele está apresentando erro na tela de vendas.",time:"10:18"},{id:2,side:"out",text:"Olá Maria! Tudo bem? Pode me enviar uma foto da tela onde aparece o erro?",time:"10:19"},{id:3,side:"note",text:"Verificar serviço local antes de solicitar acesso remoto.",time:"equipe"},{id:4,side:"in",text:"Claro! Vou enviar agora.",time:"10:20"},{id:5,side:"out",text:"Perfeito. Vou verificar para você.",time:"10:21"}],
-2:[{id:1,side:"in",text:"Conseguiu resolver? Obrigado!",time:"10:20"}],
-3:[{id:1,side:"in",text:"Precisamos de suporte urgente no caixa principal.",time:"09:15"}],
-4:[{id:1,side:"in",text:"Enviei a foto da impressora. Ela não está imprimindo.",time:"08:58"}],
-5:[{id:1,side:"in",text:"Quero saber mais detalhes do plano PDV+.",time:"08:33"}]
-};
-
-const quick={
-PDV:["Vou reiniciar o serviço do PDV e validar a conexão do terminal.","Pode me informar a versão atual do sistema?","Vou verificar o serviço local e a conexão com o banco."],
-Fiscal:["Pode me enviar o cStat e a mensagem completa da rejeição?","Vou conferir a configuração fiscal desse produto.","Consegue me enviar a chave da nota?"],
-Impressora:["Confere se a impressora está ligada e reconhecida no Windows.","Pode me enviar uma foto da impressora e do erro?","Vou validar porta, driver e comunicação."],
-Financeiro:["Vou verificar sua situação financeira.","Pode me confirmar o CNPJ da empresa?","Vou encaminhar o boleto atualizado."]
-};
-
-const kb=[
-["PDV","Serviço do PDV parado","Reiniciar serviço, validar terminal e banco."],
-["Impressão","Impressora térmica não comunica","Checklist de porta, driver e spooler."],
-["Fiscal","NF-e rejeitada","Analisar cStat, xMotivo e regra fiscal."],
-["Licença","Licença vencida","Fluxo de renovação e desbloqueio."]
-];
-
-const ticketsSeed=[
-{id:"#2541",client:"Mercado Oliveira",title:"Erro na tela de vendas",status:"Em atendimento",priority:"Alta",owner:"João Silva",deadline:"Hoje 12:00"},
-{id:"#2540",client:"Mercado Silva",title:"Erro fiscal NFC-e",status:"Novo",priority:"Urgente",owner:"Carlos Lima",deadline:"Hoje 11:10"},
-{id:"#2538",client:"Padaria do João",title:"Impressora não comunica",status:"Aguardando cliente",priority:"Normal",owner:"Ana Souza",deadline:"Hoje 15:00"},
-{id:"#2522",client:"Restaurante Sabor",title:"Dúvida sobre plano",status:"Finalizado",priority:"Normal",owner:"Ana Souza",deadline:"Concluído"}
-];
+import{FEATURES,VERSION}from"./config/features";
+import{contacts}from"./data/contacts";
+import{initialMessages as seed}from"./data/messages";
+import{quickReplies as quick}from"./data/quickReplies";
+import{knowledgeBase as kb}from"./data/knowledgeBase";
+import{initialTickets as ticketsSeed}from"./data/tickets";
 
 function Avatar({c,small=false}){return <div className={"avatar "+(small?"small ":"")+(c.online?"online":"")}>{c.initials}</div>}
 function Badge({children,tone=""}){return <span className={"badge "+tone}>{children}</span>}
