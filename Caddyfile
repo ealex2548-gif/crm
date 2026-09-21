@@ -1,0 +1,20 @@
+# Deploy inicial: só o IP da VPS, sem domínio ainda — por isso ":80" em vez
+# de um nome de domínio (Caddy só tenta HTTPS automático quando o endereço
+# do site é um domínio real; IP nu não recebe certificado da Let's Encrypt).
+#
+# Quando tiver um domínio: troque a linha ":80" abaixo por ele
+# (ex: "crm.suaempresa.com.br"). O Caddy passa a servir HTTPS sozinho,
+# renovando o certificado automaticamente — nada mais muda.
+:80 {
+	@backend path /api/* /socket.io/* /uploads/* /health
+	handle @backend {
+		reverse_proxy backend:3001
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+		encode gzip
+	}
+}

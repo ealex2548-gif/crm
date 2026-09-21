@@ -2,6 +2,7 @@ import { prisma } from "../config/prisma.js";
 import { getIO } from "../websocket/index.js";
 import { whatsappProvider } from "../services/whatsapp/index.js";
 import { PRIORITIES, CONVERSATION_STATUSES, MESSAGE_TYPES } from "../constants/enums.js";
+import { recordAudit } from "../services/auditLog.js";
 
 function serializeConversation(conversation) {
   const lastMessage = conversation.messages?.[0];
@@ -72,6 +73,14 @@ export async function updateConversation(req, res) {
       ...(assignedAgentId !== undefined && { assignedAgentId }),
     },
     include: { contact: true, sector: true, assignedAgent: true },
+  });
+
+  await recordAudit({
+    userId: req.user.sub,
+    action: "conversation.updated",
+    entityType: "Conversation",
+    entityId: conversation.id,
+    metadata: { priority, status, sectorId, assignedAgentId },
   });
 
   getIO()?.to(`conversation:${conversation.id}`).emit("conversation:updated", conversation);

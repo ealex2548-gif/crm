@@ -1,0 +1,14 @@
+# Build do frontend (Vite) — VITE_API_URL não é passado de propósito:
+# em produção o apiClient/socket já usam caminho relativo (mesma origem),
+# então a mesma imagem funciona em qualquer IP/domínio sem rebuild.
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+# Serve os arquivos estáticos e faz proxy reverso pro backend.
+FROM caddy:2-alpine
+COPY --from=build /app/dist /srv
+COPY Caddyfile /etc/caddy/Caddyfile

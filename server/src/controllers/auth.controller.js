@@ -1,6 +1,7 @@
 import { prisma } from "../config/prisma.js";
 import { comparePassword } from "../utils/password.js";
 import { signToken } from "../utils/jwt.js";
+import { recordAudit } from "../services/auditLog.js";
 
 export async function login(req, res) {
   const { email, password } = req.body ?? {};
@@ -10,13 +11,17 @@ export async function login(req, res) {
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !user.active) {
+    await recordAudit({ action: "login.failed", entityType: "User", metadata: { email } });
     return res.status(401).json({ error: "Credenciais inválidas" });
   }
 
   const valid = await comparePassword(password, user.passwordHash);
   if (!valid) {
+    await recordAudit({ userId: user.id, action: "login.failed", entityType: "User", entityId: user.id });
     return res.status(401).json({ error: "Credenciais inválidas" });
   }
+
+  await recordAudit({ userId: user.id, action: "login.success", entityType: "User", entityId: user.id });
 
   const token = signToken({ sub: user.id, role: user.role, name: user.name });
   return res.json({

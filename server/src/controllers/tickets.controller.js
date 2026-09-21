@@ -1,6 +1,7 @@
 import { prisma } from "../config/prisma.js";
 import { getIO } from "../websocket/index.js";
 import { PRIORITIES, TICKET_STATUSES } from "../constants/enums.js";
+import { recordAudit } from "../services/auditLog.js";
 
 export async function listTickets(req, res) {
   const tickets = await prisma.ticket.findMany({
@@ -32,6 +33,14 @@ export async function createTicket(req, res) {
     include: { contact: true, owner: true },
   });
 
+  await recordAudit({
+    userId: req.user.sub,
+    action: "ticket.created",
+    entityType: "Ticket",
+    entityId: ticket.id,
+    metadata: { title: ticket.title, priority: ticket.priority },
+  });
+
   getIO()?.emit("ticket:updated", ticket);
   res.status(201).json(ticket);
 }
@@ -53,6 +62,14 @@ export async function updateTicket(req, res) {
       ...(ownerId !== undefined && { ownerId }),
     },
     include: { contact: true, owner: true },
+  });
+
+  await recordAudit({
+    userId: req.user.sub,
+    action: "ticket.updated",
+    entityType: "Ticket",
+    entityId: ticket.id,
+    metadata: { status, priority, ownerId },
   });
 
   getIO()?.emit("ticket:updated", ticket);

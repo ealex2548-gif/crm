@@ -1,4 +1,8 @@
-export const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+// Em dev (vite dev server), frontend e backend rodam em portas diferentes,
+// então por padrão fala com localhost:3001. Em produção (build servido
+// atrás do proxy Caddy), backend e frontend ficam na mesma origem — string
+// vazia = caminho relativo, sem precisar gravar IP/domínio no build.
+export const API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "http://localhost:3001" : "");
 
 let authToken = null;
 

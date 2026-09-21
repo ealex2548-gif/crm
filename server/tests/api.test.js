@@ -36,6 +36,7 @@ after(async () => {
 const app = createApp();
 
 let agentToken;
+let adminToken;
 let contactId;
 let conversationId;
 
@@ -50,6 +51,9 @@ test("seed de usuário/setor/contato para os testes seguintes", async () => {
   const passwordHash = await hashPassword("senha123");
   await prisma.user.create({
     data: { name: "Teste Agente", email: "agente@test.com", passwordHash, role: "AGENT", sectorId: sector.id },
+  });
+  await prisma.user.create({
+    data: { name: "Teste Admin", email: "admin@test.com", passwordHash, role: "ADMIN", sectorId: sector.id },
   });
   const contact = await prisma.contact.create({
     data: { name: "Cliente Teste", phone: "+5511999990000", company: "Empresa Teste", sectorId: sector.id },
@@ -67,6 +71,12 @@ test("login funciona com credenciais corretas", async () => {
   assert.equal(res.status, 200);
   assert.ok(res.body.token);
   agentToken = res.body.token;
+});
+
+test("login do admin de teste", async () => {
+  const res = await request(app).post("/api/auth/login").send({ email: "admin@test.com", password: "senha123" });
+  assert.equal(res.status, 200);
+  adminToken = res.body.token;
 });
 
 test("rota protegida rejeita sem token", async () => {
@@ -187,4 +197,38 @@ test("upload rejeita tipo de arquivo não permitido", async () => {
     .attach("file", Buffer.from("conteudo"), { filename: "virus.exe", contentType: "application/x-msdownload" });
 
   assert.equal(res.status, 400);
+});
+
+test("agente comum não pode criar usuário (403)", async () => {
+  const res = await request(app)
+    .post("/api/users")
+    .set("Authorization", `Bearer ${agentToken}`)
+    .send({ name: "Novo Agente", email: "novo@test.com", password: "senha123" });
+  assert.equal(res.status, 403);
+});
+
+test("admin pode criar usuário, e-mail duplicado é rejeitado", async () => {
+  const ok = await request(app)
+    .post("/api/users")
+    .set("Authorization", `Bearer ${adminToken}`)
+    .send({ name: "Novo Agente", email: "novo@test.com", password: "senha123" });
+  assert.equal(ok.status, 201);
+  assert.equal(ok.body.role, "AGENT");
+
+  const dup = await request(app)
+    .post("/api/users")
+    .set("Authorization", `Bearer ${adminToken}`)
+    .send({ name: "Duplicado", email: "novo@test.com", password: "senha123" });
+  assert.equal(dup.status, 409);
+});
+
+test("agente comum não pode ver logs de auditoria (403), admin pode", async () => {
+  const forbidden = await request(app).get("/api/audit-logs").set("Authorization", `Bearer ${agentToken}`);
+  assert.equal(forbidden.status, 403);
+
+  const res = await request(app).get("/api/audit-logs").set("Authorization", `Bearer ${adminToken}`);
+  assert.equal(res.status, 200);
+  assert.ok(res.body.some((l) => l.action === "login.success"));
+  assert.ok(res.body.some((l) => l.action === "ticket.created"));
+  assert.ok(res.body.some((l) => l.action === "user.created"));
 });

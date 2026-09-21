@@ -4,8 +4,6 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
 
@@ -18,14 +16,23 @@ services:
     environment:
       DATABASE_URL: file:/app/data/seucrm.db
       REDIS_URL: redis://redis:6379
-    ports:
-      - "3001:3001"
     depends_on:
       - redis
     volumes:
-      - ./server:/app
-      - /app/node_modules
       - ./server/data:/app/data
+    # Sem "ports": só é alcançável dentro da rede do compose, via proxy
+    # reverso do serviço "web". Para debug local, use
+    # `docker compose exec backend sh` em vez de expor a porta.
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
 
 volumes:
   redis_data:

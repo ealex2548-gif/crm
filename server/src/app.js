@@ -9,6 +9,7 @@ import { conversationsRouter } from "./routes/conversations.routes.js";
 import { ticketsRouter } from "./routes/tickets.routes.js";
 import { sectorsRouter, quickRepliesRouter, knowledgeArticlesRouter } from "./routes/catalog.routes.js";
 import { usersRouter } from "./routes/users.routes.js";
+import { auditLogRouter } from "./routes/auditLog.routes.js";
 import { notFoundHandler, errorHandler } from "./middleware/errorHandler.js";
 
 export function createApp() {
@@ -37,6 +38,7 @@ export function createApp() {
   app.use("/api/quick-replies", quickRepliesRouter);
   app.use("/api/knowledge-articles", knowledgeArticlesRouter);
   app.use("/api/users", usersRouter);
+  app.use("/api/audit-logs", auditLogRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

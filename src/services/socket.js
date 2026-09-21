@@ -1,7 +1,9 @@
 import { io } from "socket.io-client";
 import { getStoredToken } from "./authService";
 
-const SOCKET_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+// undefined faz o socket.io-client conectar na própria origem da página —
+// certo para produção atrás do Caddy. Em dev, aponta pro backend em :3001.
+const SOCKET_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "http://localhost:3001" : undefined);
 
 let socket = null;
 
