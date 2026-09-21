@@ -2,11 +2,13 @@
 import{useState}from"react";
 import{createRoot}from"react-dom/client";
 import{
-MessageCircle,KanbanSquare,BookOpen,BarChart3,Settings,User,Columns3,LayoutDashboard,Webhook,Ticket
+MessageCircle,KanbanSquare,BookOpen,BarChart3,Settings,Columns3,LayoutDashboard,Webhook,Ticket,LogOut
 }from"lucide-react";
 import"./styles.css";
 import{FEATURES,VERSION}from"./config/features";
 import{useTickets}from"./hooks/useTickets";
+import{AuthProvider,useAuth}from"./contexts/AuthContext";
+import{LoginPage}from"./pages/LoginPage";
 import{AtendimentoPage}from"./pages/AtendimentoPage";
 import{QueuePage}from"./pages/QueuePage";
 import{KanbanPage}from"./pages/KanbanPage";
@@ -16,9 +18,16 @@ import{ReportsPage}from"./pages/ReportsPage";
 import{KnowledgePage}from"./pages/KnowledgePage";
 import{WhatsAppPage}from"./pages/WhatsAppPage";
 
-function App(){
+function Root(){
+const{user,loading,logout}=useAuth();
+if(loading)return null;
+if(!user)return <LoginPage/>;
+return <App user={user} onLogout={logout}/>;
+}
+
+function App({user,onLogout}){
 const[page,setPage]=useState("atendimento");
-const{tickets,setTickets,createTicket}=useTickets();
+const{tickets,createTicket,updateTicketStatus,loading:ticketsLoading}=useTickets();
 
 const sidebar=[
 ["atendimento","Atendimento",MessageCircle],
@@ -33,14 +42,14 @@ return <div className="shell">
 <aside className="sidebar">
 <div className="logo"><MessageCircle/></div>
 <nav>{sidebar.map(([k,label,I])=><button className={page===k?"active":""} onClick={()=>setPage(k)} key={k}><I/><small>{label}</small>{k==="atendimento"&&<em>12</em>}</button>)}</nav>
-<div className="side-bottom"><button><Settings/><small>Config</small></button><button><User/><small>Perfil</small></button></div>
+<div className="side-bottom"><button title={user.name}><Settings/><small>Config</small></button><button onClick={onLogout} title={`Sair (${user.name})`}><LogOut/><small>Sair</small></button></div>
 </aside>
 
 <main className="main">
-{page==="atendimento"&&<AtendimentoPage createTicket={createTicket} setPage={setPage}/>}
+{page==="atendimento"&&<AtendimentoPage user={user} createTicket={createTicket} setPage={setPage}/>}
 {page==="filas"&&FEATURES.management&&<QueuePage/>}
 {page==="kanban"&&FEATURES.tickets&&<KanbanPage tickets={tickets}/>}
-{page==="tickets"&&FEATURES.tickets&&<TicketsPage tickets={tickets} setTickets={setTickets}/>}
+{page==="tickets"&&FEATURES.tickets&&<TicketsPage tickets={tickets} createTicket={createTicket} updateTicketStatus={updateTicketStatus}/>}
 {page==="dashboard"&&FEATURES.dashboard&&<DashboardPage/>}
 {page==="relatorios"&&FEATURES.dashboard&&<ReportsPage/>}
 {page==="base"&&<KnowledgePage/>}
@@ -51,4 +60,4 @@ return <div className="shell">
 </div>
 }
 
-createRoot(document.getElementById("root")).render(<App/>);
+createRoot(document.getElementById("root")).render(<AuthProvider><Root/></AuthProvider>);

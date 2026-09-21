@@ -1,5 +1,6 @@
-import{knowledgeBase}from"../data/knowledgeBase";
+import { apiFetch } from "./apiClient";
 
-export function getKnowledgeBase(){
-return knowledgeBase;
+export async function getKnowledgeBase() {
+  const articles = await apiFetch("/api/knowledge-articles");
+  return articles.map((a) => [a.category, a.title, a.body]);
 }

@@ -1,5 +1,10 @@
-import{quickReplies}from"../data/quickReplies";
+import { apiFetch } from "./apiClient";
 
-export function getQuickReplies(){
-return quickReplies;
+export async function getQuickReplies() {
+  const rows = await apiFetch("/api/quick-replies");
+  const grouped = {};
+  for (const { category, body } of rows) {
+    (grouped[category] ??= []).push(body);
+  }
+  return grouped;
 }
