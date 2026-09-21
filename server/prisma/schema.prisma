@@ -3,62 +3,20 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  ADMIN
-  SUPERVISOR
-  AGENT
-}
-
-enum Priority {
-  BAIXA
-  NORMAL
-  ALTA
-  URGENTE
-}
-
-enum ConversationStatus {
-  EM_ATENDIMENTO
-  AGUARDANDO_CLIENTE
-  AGUARDANDO_EQUIPE
-  FINALIZADO
-}
-
-enum MessageDirection {
-  IN
-  OUT
-}
-
-enum MessageType {
-  TEXT
-  NOTE
-  MEDIA
-}
-
-enum MessageStatus {
-  PENDING
-  SENT
-  DELIVERED
-  READ
-  FAILED
-}
-
-enum TicketStatus {
-  NOVO
-  EM_ATENDIMENTO
-  AGUARDANDO_CLIENTE
-  FINALIZADO
-}
+// SQLite não tem tipo enum nativo, então os campos abaixo marcados com
+// "// enum:" são strings validadas pela aplicação (ver src/constants/enums.js),
+// não pelo banco. Isso é o principal trade-off de usar SQLite aqui.
 
 model User {
   id           String    @id @default(cuid())
   name         String
   email        String    @unique
   passwordHash String
-  role         Role      @default(AGENT)
+  role         String    @default("AGENT") // enum: ADMIN | SUPERVISOR | AGENT
   sector       Sector?   @relation(fields: [sectorId], references: [id])
   sectorId     String?
   active       Boolean   @default(true)
@@ -99,16 +57,16 @@ model Contact {
 }
 
 model Conversation {
-  id              String              @id @default(cuid())
-  contact         Contact             @relation(fields: [contactId], references: [id])
+  id              String    @id @default(cuid())
+  contact         Contact   @relation(fields: [contactId], references: [id])
   contactId       String
-  sector          Sector?             @relation(fields: [sectorId], references: [id])
+  sector          Sector?   @relation(fields: [sectorId], references: [id])
   sectorId        String?
-  assignedAgent   User?               @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
+  assignedAgent   User?     @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
   assignedAgentId String?
-  priority        Priority            @default(NORMAL)
-  status          ConversationStatus  @default(EM_ATENDIMENTO)
-  createdAt       DateTime            @default(now())
+  priority        String    @default("NORMAL") // enum: BAIXA | NORMAL | ALTA | URGENTE
+  status          String    @default("EM_ATENDIMENTO") // enum: EM_ATENDIMENTO | AGUARDANDO_CLIENTE | AGUARDANDO_EQUIPE | FINALIZADO
+  createdAt       DateTime  @default(now())
   closedAt        DateTime?
 
   messages Message[]
@@ -119,18 +77,18 @@ model Conversation {
 }
 
 model Message {
-  id                String            @id @default(cuid())
-  conversation      Conversation      @relation(fields: [conversationId], references: [id])
+  id                String    @id @default(cuid())
+  conversation      Conversation @relation(fields: [conversationId], references: [id])
   conversationId    String
-  direction         MessageDirection
-  type              MessageType       @default(TEXT)
+  direction         String    // enum: IN | OUT
+  type              String    @default("TEXT") // enum: TEXT | NOTE | MEDIA
   body              String?
   mediaUrl          String?
   whatsappMessageId String?
-  status            MessageStatus     @default(SENT)
-  sentBy            User?             @relation(fields: [sentById], references: [id])
+  status            String    @default("SENT") // enum: PENDING | SENT | DELIVERED | READ | FAILED
+  sentBy            User?     @relation(fields: [sentById], references: [id])
   sentById          String?
-  createdAt         DateTime          @default(now())
+  createdAt         DateTime  @default(now())
   readAt            DateTime?
 
   @@index([conversationId])
@@ -143,8 +101,8 @@ model Ticket {
   conversation   Conversation? @relation(fields: [conversationId], references: [id])
   conversationId String?
   title          String
-  status         TicketStatus  @default(NOVO)
-  priority       Priority      @default(NORMAL)
+  status         String        @default("NOVO") // enum: NOVO | EM_ATENDIMENTO | AGUARDANDO_CLIENTE | FINALIZADO
+  priority       String        @default("NORMAL") // enum: BAIXA | NORMAL | ALTA | URGENTE
   owner          User?         @relation(fields: [ownerId], references: [id])
   ownerId        String?
   deadline       DateTime?
@@ -174,7 +132,7 @@ model AuditLog {
   action     String
   entityType String
   entityId   String?
-  metadata   Json?
+  metadata   String? // JSON serializado (JSON.stringify) — SQLite não tem tipo Json nativo
   createdAt  DateTime @default(now())
 
   @@index([entityType, entityId])

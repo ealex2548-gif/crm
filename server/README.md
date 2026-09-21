@@ -13,8 +13,9 @@ cp server/.env.example server/.env
 docker compose up --build
 ```
 
-Isso sobe Postgres, Redis e a API na porta `3001`. Na primeira vez, rode as
-migrações e o seed em outro terminal:
+Isso sobe Redis e a API na porta `3001`. O banco é SQLite — um arquivo em
+`server/data/seucrm.db`, montado como volume para persistir entre restarts
+do container. Na primeira vez, rode as migrações e o seed em outro terminal:
 
 ```bash
 docker compose exec backend npm run prisma:migrate
@@ -25,17 +26,9 @@ Login de teste após o seed: `admin@seucrm.com` / `mudar123`.
 
 ## Rodando sem Docker
 
-Requer Postgres e Redis acessíveis localmente (ajuste `DATABASE_URL` e
-`REDIS_URL` no `.env`).
-
-> **Atenção:** esta máquina já tem um PostgreSQL 9.5 (serviço do Windows)
-> ocupando a porta 5432, usado por outro projeto. Não reaproveite esse
-> serviço para o SeuCRM — ele é antigo (fora de suporte) e pertence a
-> outra aplicação. Rodando via Docker (recomendado acima) isso não é um
-> problema, pois o Postgres do `docker-compose.yml` também expõe a porta
-> 5432 do host — se for rodar os dois ao mesmo tempo, mude a porta do
-> serviço em `docker-compose.yml` (ex: `"5433:5432"`) ou pare o serviço
-> Windows antes.
+Requer Redis acessível localmente (ajuste `REDIS_URL` no `.env` se preciso).
+O SQLite não exige nenhum serviço — o arquivo é criado automaticamente em
+`server/prisma/dev.db` na primeira migração.
 
 ```bash
 cd server
@@ -46,6 +39,14 @@ npm run prisma:seed
 npm run dev
 ```
 
+> Por que SQLite e não Postgres: a VPS roda tudo numa máquina só e o volume
+> de escrita concorrente (alguns atendentes + webhook do WhatsApp) é baixo
+> o suficiente pra isso não ser um problema. Se a equipe crescer muito ou o
+> volume de mensagens aumentar bastante, dá pra migrar pro Postgres depois
+> — o Prisma facilita essa troca (é basicamente mudar `provider` no
+> `schema.prisma`, os `enum` que viraram `String` documentada em
+> `src/constants/enums.js` voltariam a ser enums nativos).
+
 ## Estrutura
 
 - `src/app.js` — configuração do Express (middlewares, rotas)
@@ -55,9 +56,11 @@ npm run dev
   `cloudApi` quando a conta Meta Business/WABA estiver aprovada — troca-se
   apenas `WHATSAPP_PROVIDER` no `.env`, nenhum outro código muda)
 - `src/websocket` — eventos em tempo real (mensagens, tickets)
-- `prisma/schema.prisma` — modelo de dados
+- `prisma/schema.prisma` — modelo de dados (SQLite)
 - `prisma/seed.js` — popula o banco com os mesmos dados de exemplo do
   protótipo frontend (`src/data/*` na raiz do projeto)
+- `src/constants/enums.js` — valores válidos dos campos que seriam `enum`
+  num banco relacional tradicional (SQLite não suporta enum nativo)
 
 ## Próximos passos
 
