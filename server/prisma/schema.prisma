@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  SUPERVISOR
+  AGENT
+}
+
+enum Priority {
+  BAIXA
+  NORMAL
+  ALTA
+  URGENTE
+}
+
+enum ConversationStatus {
+  EM_ATENDIMENTO
+  AGUARDANDO_CLIENTE
+  AGUARDANDO_EQUIPE
+  FINALIZADO
+}
+
+enum MessageDirection {
+  IN
+  OUT
+}
+
+enum MessageType {
+  TEXT
+  NOTE
+  MEDIA
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum TicketStatus {
+  NOVO
+  EM_ATENDIMENTO
+  AGUARDANDO_CLIENTE
+  FINALIZADO
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(AGENT)
+  sector       Sector?   @relation(fields: [sectorId], references: [id])
+  sectorId     String?
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  assignedConversations Conversation[] @relation("AssignedAgent")
+  ownedTickets          Ticket[]
+  sentMessages          Message[]
+  auditLogs             AuditLog[]
+}
+
+model Sector {
+  id   String @id @default(cuid())
+  name String @unique
+
+  users         User[]
+  contacts      Contact[]
+  conversations Conversation[]
+}
+
+model Contact {
+  id           String   @id @default(cuid())
+  name         String
+  phone        String   @unique
+  company      String?
+  city         String?
+  plan         String?
+  pdvVersion   String?
+  pdvTerminals String?
+  pdvDatabase  String?
+  sector       Sector?  @relation(fields: [sectorId], references: [id])
+  sectorId     String?
+  createdAt    DateTime @default(now())
+
+  conversations Conversation[]
+  tickets       Ticket[]
+}
+
+model Conversation {
+  id              String              @id @default(cuid())
+  contact         Contact             @relation(fields: [contactId], references: [id])
+  contactId       String
+  sector          Sector?             @relation(fields: [sectorId], references: [id])
+  sectorId        String?
+  assignedAgent   User?               @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
+  assignedAgentId String?
+  priority        Priority            @default(NORMAL)
+  status          ConversationStatus  @default(EM_ATENDIMENTO)
+  createdAt       DateTime            @default(now())
+  closedAt        DateTime?
+
+  messages Message[]
+  tickets  Ticket[]
+
+  @@index([status])
+  @@index([sectorId])
+}
+
+model Message {
+  id                String            @id @default(cuid())
+  conversation      Conversation      @relation(fields: [conversationId], references: [id])
+  conversationId    String
+  direction         MessageDirection
+  type              MessageType       @default(TEXT)
+  body              String?
+  mediaUrl          String?
+  whatsappMessageId String?
+  status            MessageStatus     @default(SENT)
+  sentBy            User?             @relation(fields: [sentById], references: [id])
+  sentById          String?
+  createdAt         DateTime          @default(now())
+  readAt            DateTime?
+
+  @@index([conversationId])
+}
+
+model Ticket {
+  id             String        @id @default(cuid())
+  contact        Contact       @relation(fields: [contactId], references: [id])
+  contactId      String
+  conversation   Conversation? @relation(fields: [conversationId], references: [id])
+  conversationId String?
+  title          String
+  status         TicketStatus  @default(NOVO)
+  priority       Priority      @default(NORMAL)
+  owner          User?         @relation(fields: [ownerId], references: [id])
+  ownerId        String?
+  deadline       DateTime?
+  createdAt      DateTime      @default(now())
+  closedAt       DateTime?
+
+  @@index([status])
+}
+
+model QuickReply {
+  id       String @id @default(cuid())
+  category String
+  body     String
+}
+
+model KnowledgeArticle {
+  id       String @id @default(cuid())
+  category String
+  title    String
+  body     String
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  user       User?    @relation(fields: [userId], references: [id])
+  userId     String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+}
