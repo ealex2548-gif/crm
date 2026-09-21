@@ -32,7 +32,10 @@ services:
     depends_on:
       - backend
     ports:
-      - "80:80"
+      - "8080:80"
+    # 8080 em vez de 80: essa VPS já roda outros apps atrás de um Traefik
+    # que usa a porta 80/443. Usar 8080 evita conflito sem mexer no que já
+    # está rodando. Acesso: http://SEU_IP:8080
 
 volumes:
   redis_data:
