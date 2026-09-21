@@ -1,14 +1,17 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-// Reaproveita os mocks do protótipo frontend como dados iniciais reais,
-// para a migração do protótipo visual para o banco de dados ser 1:1.
-import { contacts as mockContacts } from "../../src/data/contacts.js";
-import { initialMessages as mockMessages } from "../../src/data/messages.js";
-import { initialTickets as mockTickets } from "../../src/data/tickets.js";
-import { quickReplies as mockQuickReplies } from "../../src/data/quickReplies.js";
-import { knowledgeBase as mockKnowledgeBase } from "../../src/data/knowledgeBase.js";
-import { SECTORS } from "../../src/data/sectors.js";
+// Dados iniciais (mesmo conteúdo do protótipo frontend original). Vivem
+// aqui dentro de server/ — e não em src/data/ na raiz do repo — porque o
+// build Docker do backend só enxerga a pasta server/ como contexto; um
+// import cruzando essa fronteira funciona em dev local mas quebra no
+// container.
+import { contacts as mockContacts } from "./seedData/contacts.js";
+import { initialMessages as mockMessages } from "./seedData/messages.js";
+import { initialTickets as mockTickets } from "./seedData/tickets.js";
+import { quickReplies as mockQuickReplies } from "./seedData/quickReplies.js";
+import { knowledgeBase as mockKnowledgeBase } from "./seedData/knowledgeBase.js";
+import { SECTORS } from "./seedData/sectors.js";
 
 const prisma = new PrismaClient();
 

@@ -57,8 +57,11 @@ npm run dev
   apenas `WHATSAPP_PROVIDER` no `.env`, nenhum outro código muda)
 - `src/websocket` — eventos em tempo real (mensagens, tickets)
 - `prisma/schema.prisma` — modelo de dados (SQLite)
-- `prisma/seed.js` — popula o banco com os mesmos dados de exemplo do
-  protótipo frontend (`src/data/*` na raiz do projeto)
+- `prisma/seed.js` + `prisma/seedData/` — popula o banco com dados de
+  exemplo (os mesmos do protótipo frontend original). Vivem dentro de
+  `server/` de propósito, não em `src/data/` na raiz — o build Docker do
+  backend só enxerga a pasta `server/`, então um import cruzando essa
+  fronteira funciona em dev local mas quebra no container
 - `src/constants/enums.js` — valores válidos dos campos que seriam `enum`
   num banco relacional tradicional (SQLite não suporta enum nativo)
 
