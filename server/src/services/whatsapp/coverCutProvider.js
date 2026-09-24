@@ -87,6 +87,20 @@ export class CoverCutWhatsAppProvider extends WhatsAppProvider {
     return { id: data.message_id };
   }
 
+  // Baixa uma mídia recebida (ou enviada pelo celular) pelo media_id do webhook.
+  async downloadMedia(mediaId) {
+    const params = new URLSearchParams({ id: mediaId, mode: "stream" });
+    if (this.phoneNumberId) params.set("from", this.phoneNumberId);
+
+    const res = await fetch(`${this.baseUrl}/media/get?${params}`, { headers: this.#authHeaders });
+    const mimetype = (res.headers.get("content-type") ?? "").split(";")[0].trim();
+    if (!res.ok || mimetype === "application/json") {
+      const detail = await res.text().catch(() => "");
+      throw new Error(`CoverCut: falha ao baixar mídia ${mediaId} (${res.status}) ${detail.slice(0, 200)}`);
+    }
+    return { buffer: Buffer.from(await res.arrayBuffer()), mimetype };
+  }
+
   verifyWebhook(_query) {
     return null;
   }
@@ -109,10 +123,16 @@ export class CoverCutWhatsAppProvider extends WhatsAppProvider {
 
     const message = body.message ?? {};
     const isText = message.type === "text";
+    // Formato Meta: message.image = { id, mime_type, caption }, idem video/audio/document/sticker.
+    const media = isText ? null : message[message.type];
 
     return [
       {
+        media: media?.id
+          ? { id: media.id, mimetype: media.mime_type, caption: media.caption, filename: media.filename }
+          : null,
         direction,
+        raw: isText ? undefined : message,
         // Em mensagem e em echo, contact é sempre o cliente.
         from: body.contact?.wa_id ?? body.from_number ?? null,
         name: body.contact?.name ?? null,
@@ -142,10 +162,11 @@ function mimeToCoverCutType(mimetype = "") {
   return "document";
 }
 
-// Baixar o conteúdo de mídia recebida exige o endpoint GET /media/get da
-// CoverCut (fora do escopo desta primeira integração) — por ora só
-// registramos que algo chegou, sem o arquivo.
+// Texto da mensagem de mídia (o arquivo em si é baixado pelo webhook via
+// downloadMedia) — também é o que aparece na prévia da lista de conversas.
+const MEDIA_LABELS = { image: "📷 Imagem", video: "🎬 Vídeo", audio: "🎤 Áudio", document: "📄 Documento", sticker: "Figurinha" };
+
 function mediaPlaceholder(message) {
   if (message.type === "unsupported") return "[mensagem não suportada pelo WhatsApp]";
-  return `[${message.type ?? "mídia"}]`;
+  return MEDIA_LABELS[message.type] ?? `[${message.type ?? "mídia"}]`;
 }

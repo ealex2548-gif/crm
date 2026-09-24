@@ -1,9 +1,12 @@
 import crypto from "node:crypto";
+import path from "node:path";
+import { writeFile } from "node:fs/promises";
 import { prisma } from "../config/prisma.js";
 import { getIO } from "../websocket/index.js";
 import { env } from "../config/env.js";
 import { whatsappProvider } from "../services/whatsapp/index.js";
 import { phoneKey, formatWaId } from "../utils/phone.js";
+import { UPLOAD_DIR_PATH } from "../middleware/upload.js";
 
 // Eventos que hoje só reconhecemos e confirmamos (200 OK), sem processar —
 // coexistência (histórico/contatos do celular) e status de conta ficam
@@ -61,15 +64,19 @@ async function findOrCreateContact(waId, name) {
   const existing = contacts.find((c) => phoneKey(c.phone) === key);
 
   if (existing) {
-    // Só troca o nome se o contato ainda estiver com o número como nome.
-    if (name && existing.name === existing.phone) {
+    // Só troca o nome se o contato ainda estiver sem nome (vazio ou o próprio número).
+    if (name && (!existing.name || existing.name === existing.phone)) {
       return prisma.contact.update({ where: { id: existing.id }, data: { name } });
+    }
+    if (!existing.name) {
+      return prisma.contact.update({ where: { id: existing.id }, data: { name: existing.phone } });
     }
     return existing;
   }
 
   const phone = formatWaId(waId);
-  return prisma.contact.create({ data: { phone, name: name ?? phone } });
+  // Echo de conversa iniciada pelo celular não traz o nome do cliente.
+  return prisma.contact.create({ data: { phone, name: name || phone } });
 }
 
 // Mensagem do cliente (IN) ou resposta digitada no celular da empresa (OUT, via echo).
@@ -93,12 +100,18 @@ async function recordMessage(entry) {
     });
   }
 
+  const media = entry.media ? await saveMedia(entry.media) : null;
+  if (entry.type === "MEDIA" && !entry.media) {
+    console.warn("[webhook:covercut] mídia sem id no payload:", JSON.stringify(entry.raw ?? {}).slice(0, 500));
+  }
+
   const message = await prisma.message.create({
     data: {
       conversationId: conversation.id,
       direction: entry.direction ?? "IN",
       type: entry.type ?? "TEXT",
-      body: entry.text,
+      body: entry.media?.caption || entry.media?.filename || entry.text,
+      mediaUrl: media?.mediaUrl,
       whatsappMessageId: entry.whatsappMessageId,
       status: entry.direction === "OUT" ? "SENT" : "DELIVERED",
     },
@@ -115,6 +128,29 @@ async function recordMessage(entry) {
 
   getIO()?.emit("conversation:updated", { id: conversation.id });
   getIO()?.to(`conversation:${conversation.id}`).emit("message:new", message);
+}
+
+const EXT_BY_MIME = {
+  "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif",
+  "audio/ogg": ".ogg", "audio/mpeg": ".mp3", "audio/mp4": ".m4a", "audio/aac": ".aac", "audio/amr": ".amr",
+  "video/mp4": ".mp4", "video/3gpp": ".3gp", "application/pdf": ".pdf",
+};
+
+// Baixa a mídia pela CoverCut e guarda junto dos uploads (/uploads/...).
+// Se falhar, a mensagem entra só com o texto "[image]" etc. — não perde a mensagem.
+async function saveMedia({ id, mimetype, filename }) {
+  if (!whatsappProvider.downloadMedia) return null;
+  try {
+    const file = await whatsappProvider.downloadMedia(id);
+    const type = file.mimetype || (mimetype ?? "").split(";")[0];
+    const ext = EXT_BY_MIME[type] ?? (filename ? path.extname(filename) : "") ?? "";
+    const name = `${crypto.randomUUID()}${ext}`;
+    await writeFile(path.join(UPLOAD_DIR_PATH, name), file.buffer);
+    return { mediaUrl: `/uploads/${name}` };
+  } catch (err) {
+    console.error("[webhook:covercut] não foi possível baixar a mídia:", err.message);
+    return null;
+  }
 }
 
 // Status chegam fora de ordem (read antes de delivered, por exemplo) — nunca

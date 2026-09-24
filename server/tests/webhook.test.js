@@ -244,3 +244,39 @@ test("resposta pelo celular (echo) marca as mensagens do cliente como lidas no C
   const after = await prisma.message.findUnique({ where: { id: received.id } });
   assert.ok(after.readAt, "quem respondeu pelo celular leu — não pode ficar como não lida");
 });
+
+test("imagem enviada pelo celular é baixada da CoverCut e aparece com arquivo no CRM", async () => {
+  const realFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    calls.push(String(url));
+    return new Response(Buffer.from("fake-jpeg"), { status: 200, headers: { "content-type": "image/jpeg" } });
+  };
+  try {
+    const body = {
+      event: "echo",
+      direction: "outbound",
+      echo_source: "phone",
+      contact: { wa_id: "5592992186980" },
+      message: { id: "wamid_img_phone", type: "image", image: { id: "845187", mime_type: "image/jpeg" } },
+    };
+    await request(app).post("/api/webhooks/covercut").set("x-bsp-signature", sign(body)).send(body);
+    const message = await waitForMessage("wamid_img_phone");
+    assert.ok(message);
+    assert.equal(message.type, "MEDIA");
+    assert.match(message.mediaUrl, /^\/uploads\/.+\.jpg$/);
+    assert.equal(message.body, "📷 Imagem");
+    assert.ok(calls.some((u) => u.includes("/media/get?id=845187")));
+
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: message.conversationId },
+      include: { contact: true },
+    });
+    assert.equal(conversation.contact.name, "+55 92 99218-6980", "sem nome no webhook, usa o telefone");
+
+    const file = await request(app).get(message.mediaUrl);
+    assert.equal(file.status, 200);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
