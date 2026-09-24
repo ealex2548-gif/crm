@@ -104,6 +104,15 @@ async function recordMessage(entry) {
     },
   });
 
+  // A Meta não avisa quando alguém só LÊ no celular, mas avisa quando responde
+  // (echo). Quem respondeu leu — zera as não lidas da conversa no CRM.
+  if (entry.direction === "OUT") {
+    await prisma.message.updateMany({
+      where: { conversationId: conversation.id, direction: "IN", readAt: null },
+      data: { readAt: new Date() },
+    });
+  }
+
   getIO()?.emit("conversation:updated", { id: conversation.id });
   getIO()?.to(`conversation:${conversation.id}`).emit("message:new", message);
 }

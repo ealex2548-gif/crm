@@ -12,6 +12,7 @@ import { initialTickets as mockTickets } from "./seedData/tickets.js";
 import { quickReplies as mockQuickReplies } from "./seedData/quickReplies.js";
 import { knowledgeBase as mockKnowledgeBase } from "./seedData/knowledgeBase.js";
 import { SECTORS } from "./seedData/sectors.js";
+import { AGENT_SEED_USERS } from "./seedData/agents.js";
 
 const prisma = new PrismaClient();
 
@@ -23,11 +24,6 @@ const TICKET_STATUS_MAP = {
   Finalizado: "FINALIZADO",
 };
 
-const AGENT_SEED_USERS = [
-  { name: "João Silva", email: "joao.silva@seucrm.com" },
-  { name: "Ana Souza", email: "ana.souza@seucrm.com" },
-  { name: "Carlos Lima", email: "carlos.lima@seucrm.com" },
-];
 
 async function main() {
   console.log("Seeding setores...");
@@ -55,7 +51,8 @@ async function main() {
   });
 
   const userByName = { [admin.name]: admin };
-  for (const agent of AGENT_SEED_USERS) {
+  // Atendentes de exemplo (senha padrão pública) só com SEED_DEMO=1.
+  for (const agent of process.env.SEED_DEMO === "1" ? AGENT_SEED_USERS : []) {
     userByName[agent.name] = await prisma.user.upsert({
       where: { email: agent.email },
       update: {},

@@ -1,10 +1,13 @@
 // Remove os clientes de exemplo do protótipo (prisma/seedData/contacts.js)
-// junto com as conversas, mensagens e tickets deles.
+// junto com as conversas, mensagens e tickets deles, e desativa os atendentes
+// de exemplo (senha padrão pública). Atendentes são desativados, não apagados,
+// para não quebrar histórico de mensagens e auditoria.
 //
 // Sem argumentos só mostra o que seria apagado. Para apagar de verdade:
 //   node scripts/remove-demo-data.js --apply
 import { PrismaClient } from "@prisma/client";
 import { contacts as demoContacts } from "../prisma/seedData/contacts.js";
+import { AGENT_SEED_USERS } from "../prisma/seedData/agents.js";
 
 const prisma = new PrismaClient();
 const apply = process.argv.includes("--apply");
@@ -21,15 +24,23 @@ async function main() {
   });
   const conversationIds = conversations.map((c) => c.id);
 
+  const demoAgents = await prisma.user.findMany({
+    where: { email: { in: AGENT_SEED_USERS.map((u) => u.email) }, active: true },
+    select: { id: true, name: true, email: true },
+  });
+
   const counts = {
     mensagens: await prisma.message.count({ where: { conversationId: { in: conversationIds } } }),
     tickets: await prisma.ticket.count({ where: { contactId: { in: contactIds } } }),
     conversas: conversationIds.length,
     contatos: contactIds.length,
+    atendentesADesativar: demoAgents.length,
   };
 
   console.log("Contatos de exemplo encontrados:");
   for (const c of contacts) console.log(`  - ${c.name} (${c.phone})`);
+  console.log("Atendentes de exemplo ativos:");
+  for (const u of demoAgents) console.log(`  - ${u.name} (${u.email})`);
   console.log("Total:", counts);
 
   if (!apply) {
@@ -42,6 +53,7 @@ async function main() {
     prisma.ticket.deleteMany({ where: { contactId: { in: contactIds } } }),
     prisma.conversation.deleteMany({ where: { id: { in: conversationIds } } }),
     prisma.contact.deleteMany({ where: { id: { in: contactIds } } }),
+    prisma.user.updateMany({ where: { id: { in: demoAgents.map((u) => u.id) } }, data: { active: false } }),
   ]);
   console.log("\nApagado.");
 }

@@ -220,3 +220,27 @@ test("webhook covercut grava echo do celular como mensagem enviada (OUT)", async
   const conversation = await prisma.conversation.findUnique({ where: { id: message.conversationId } });
   assert.equal(conversation.contactId, contact.id, "echo entra na conversa do cliente, não do número da empresa");
 });
+
+test("resposta pelo celular (echo) marca as mensagens do cliente como lidas no CRM", async () => {
+  const inbound = {
+    event: "message",
+    direction: "inbound",
+    contact: { wa_id: "5547911112222", name: "Cliente Leitura" },
+    message: { id: "wamid_lida_in", type: "text", text: "Oi" },
+  };
+  await request(app).post("/api/webhooks/covercut").set("x-bsp-signature", sign(inbound)).send(inbound);
+  const received = await waitForMessage("wamid_lida_in");
+  assert.equal(received.readAt, null);
+
+  const echo = {
+    event: "echo",
+    direction: "outbound",
+    echo_source: "phone",
+    contact: { wa_id: "5547911112222", name: "Cliente Leitura" },
+    message: { id: "wamid_lida_echo", type: "text", text: "Olá!" },
+  };
+  await request(app).post("/api/webhooks/covercut").set("x-bsp-signature", sign(echo)).send(echo);
+  await waitForMessage("wamid_lida_echo");
+  const after = await prisma.message.findUnique({ where: { id: received.id } });
+  assert.ok(after.readAt, "quem respondeu pelo celular leu — não pode ficar como não lida");
+});
