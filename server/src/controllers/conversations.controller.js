@@ -46,6 +46,10 @@ export async function listConversations(req, res) {
     }))
   );
 
+  // Como no WhatsApp: quem mandou/recebeu mensagem por último fica no topo.
+  const lastActivity = (c) => (c.messages[0]?.createdAt ?? c.createdAt).getTime();
+  withUnread.sort((a, b) => lastActivity(b) - lastActivity(a));
+
   res.json(withUnread.map(serializeConversation));
 }
 
