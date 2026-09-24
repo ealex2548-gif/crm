@@ -28,9 +28,23 @@ export function useChatMessages(activeId) {
     };
   }, [activeId]);
 
+  // Mostra a mensagem na hora (🕓) e troca pela confirmada quando o WhatsApp
+  // responde — o envio pela CoverCut leva 1–2s. O socket pode entregar a
+  // confirmada antes da resposta HTTP, por isso a checagem de duplicada.
   const sendMessage = async (contactId, text) => {
-    const message = await sendMessageRequest(contactId, text);
-    setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
+    const tempId = `tmp-${Date.now()}`;
+    const time = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    setMessages((prev) => [...prev, { id: tempId, side: "out", text, mediaUrl: null, time, pending: true }]);
+    try {
+      const message = await sendMessageRequest(contactId, text);
+      setMessages((prev) => {
+        const withoutTemp = prev.filter((m) => m.id !== tempId);
+        return withoutTemp.some((m) => m.id === message.id) ? withoutTemp : [...withoutTemp, message];
+      });
+    } catch (err) {
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      throw err;
+    }
   };
 
   const addNote = async (contactId, text) => {
