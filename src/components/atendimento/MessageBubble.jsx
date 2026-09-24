@@ -1,15 +1,50 @@
+import{useState}from"react";
 import{FEATURES}from"../../config/features";
-import{Reply,Copy,Star,FilePlus2,FileText}from"lucide-react";
+import{ChevronDown,FileText}from"lucide-react";
 
 const MEDIA_LABELS=["📷 Imagem","🎬 Vídeo","🎤 Áudio","📄 Documento","Figurinha"];
 
-export function MessageBubble({m,onReply,onNewTicket}){
+// Tiques como no WhatsApp: 🕓 enviando · ✓ enviado · ✓✓ entregue · ✓✓ azul lido.
+function Ticks({m}){
+if(m.side!=="out")return null;
+if(m.pending)return <span className="ticks">🕓</span>;
+if(m.status==="FAILED")return <span className="ticks failed" title="Falhou">⚠</span>;
+if(m.status==="READ")return <span className="ticks read">✓✓</span>;
+if(m.status==="DELIVERED")return <span className="ticks">✓✓</span>;
+return <span className="ticks">✓</span>;
+}
+
+// Transforma URLs e "www." em links clicáveis.
+function Linkify({text}){
+return String(text??"").split(/((?:https?:\/\/|www\.)[^\s]+)/g).map((part,i)=>
+i%2?<a key={i} href={part.startsWith("http")?part:`https://${part}`} target="_blank" rel="noreferrer">{part}</a>:part);
+}
+
+export function MessageBubble({m,first,onReply,onNewTicket}){
+const[menu,setMenu]=useState(false);
 const isImage=m.mediaUrl&&/\.(png|jpe?g|gif|webp)$/i.test(m.mediaUrl);
 const isAudio=m.mediaUrl&&/\.(ogg|mp3|m4a|aac|amr|wav)$/i.test(m.mediaUrl);
 const isVideo=m.mediaUrl&&/\.(mp4|3gp)$/i.test(m.mediaUrl);
 // Legenda da mídia (o texto padrão "📷 Imagem" etc. só serve para a prévia da lista).
-const caption=m.text&&!MEDIA_LABELS.includes(m.text)?m.text:null;
-return <div className={"bubble-wrap "+m.side}><div className={"bubble "+m.side}>{m.side==="note"&&<b>📝 Nota interna</b>}
-{m.mediaUrl?(isImage||isAudio||isVideo?<>{isImage&&<img src={m.mediaUrl} alt={m.text||"anexo"} className="bubble-media"/>}{isAudio&&<audio src={m.mediaUrl} controls className="bubble-media"/>}{isVideo&&<video src={m.mediaUrl} controls className="bubble-media"/>}{caption&&<span>{caption}</span>}</>:<a href={m.mediaUrl} target="_blank" rel="noreferrer" className="bubble-file"><FileText/>{m.text||"Arquivo"}</a>):<span>{m.text}</span>}
-<small>{m.time}{m.side==="out"?(m.pending?" 🕓":" ✓✓"):""}</small></div>{FEATURES.productivity&&m.side!=="note"&&<div className="msg-actions"><button onClick={()=>onReply(m.text)}><Reply/></button><button onClick={()=>navigator.clipboard?.writeText(m.text)}><Copy/></button><button><Star/></button><button onClick={()=>onNewTicket(m.text)}><FilePlus2/></button></div>}</div>
+const caption=m.mediaUrl?(m.text&&!MEDIA_LABELS.includes(m.text)?m.text:null):m.text;
+const meta=<span className="meta">{m.time}<Ticks m={m}/></span>;
+
+const act=(fn)=>{setMenu(false);fn()};
+
+return <div className={"bubble-wrap "+m.side+(first?" first":"")} onMouseLeave={()=>setMenu(false)}>
+<div className={"bubble "+m.side+(first?" tail":"")}>
+{m.side==="note"&&<b className="note-title">📝 Nota interna</b>}
+{isImage&&<img src={m.mediaUrl} alt={m.text||"imagem"} className="bubble-media"/>}
+{isAudio&&<audio src={m.mediaUrl} controls className="bubble-media"/>}
+{isVideo&&<video src={m.mediaUrl} controls className="bubble-media"/>}
+{m.mediaUrl&&!isImage&&!isAudio&&!isVideo&&<a href={m.mediaUrl} target="_blank" rel="noreferrer" className="bubble-file"><FileText/>{m.text||"Arquivo"}</a>}
+{caption?<div className="bubble-text"><Linkify text={caption}/><span className="meta-spacer"/>{meta}</div>:<div className="bubble-text only-meta">{meta}</div>}
+{FEATURES.productivity&&m.side!=="note"&&!m.pending&&<button type="button" className="bubble-menu-btn" title="Mais opções" onClick={()=>setMenu(v=>!v)}><ChevronDown/></button>}
+{menu&&<div className="bubble-menu">
+<button type="button" onClick={()=>act(()=>onReply(m.text))}>Responder</button>
+<button type="button" onClick={()=>act(()=>navigator.clipboard?.writeText(m.text??""))}>Copiar</button>
+<button type="button" onClick={()=>act(()=>onNewTicket(m.text))}>Criar ticket</button>
+</div>}
+</div>
+</div>
 }

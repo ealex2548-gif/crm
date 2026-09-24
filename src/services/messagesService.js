@@ -7,6 +7,8 @@ export function mapMessage(m) {
     text: m.body,
     mediaUrl: m.mediaUrl ? `${API_URL}${m.mediaUrl}` : null,
     time: new Date(m.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+    createdAt: m.createdAt,
+    status: m.status,
   };
 }
 

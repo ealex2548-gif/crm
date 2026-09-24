@@ -21,9 +21,17 @@ export function useChatMessages(activeId) {
       const message = mapMessage(raw);
       setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
     };
+    // Tiques (entregue/lido) chegam depois, pelo webhook de status.
+    const onUpdatedMessage = (raw) => {
+      if (raw.conversationId !== activeId) return;
+      const updated = mapMessage(raw);
+      setMessages((prev) => prev.map((m) => (m.id === updated.id ? { ...m, status: updated.status } : m)));
+    };
     socket.on("message:new", onNewMessage);
+    socket.on("message:updated", onUpdatedMessage);
     return () => {
       socket.off("message:new", onNewMessage);
+      socket.off("message:updated", onUpdatedMessage);
       socket.emit("conversation:leave", activeId);
     };
   }, [activeId]);
@@ -34,7 +42,7 @@ export function useChatMessages(activeId) {
   const sendMessage = async (contactId, text) => {
     const tempId = `tmp-${Date.now()}`;
     const time = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    setMessages((prev) => [...prev, { id: tempId, side: "out", text, mediaUrl: null, time, pending: true }]);
+    setMessages((prev) => [...prev, { id: tempId, side: "out", text, mediaUrl: null, time, createdAt: new Date().toISOString(), pending: true }]);
     try {
       const message = await sendMessageRequest(contactId, text);
       setMessages((prev) => {
