@@ -8,7 +8,7 @@ import { phoneKey, formatWaId } from "../utils/phone.js";
 // Eventos que hoje só reconhecemos e confirmamos (200 OK), sem processar —
 // coexistência (histórico/contatos do celular) e status de conta ficam
 // para uma fase futura da integração.
-const IGNORED_EVENTS = ["echo", "history", "smb_app_state_sync", "account_update"];
+const IGNORED_EVENTS = ["history", "smb_app_state_sync", "account_update"];
 
 function isValidSignature(req) {
   const secret = env.whatsapp.covercut.webhookSecret;
@@ -46,7 +46,7 @@ export async function receiveCoverCutWebhook(req, res) {
     const entries = whatsappProvider.parseWebhookPayload(req.body);
     for (const entry of entries) {
       if (!entry.from) continue;
-      await recordInboundMessage(entry);
+      await recordMessage(entry);
     }
   } catch (err) {
     console.error("[webhook:covercut] falha ao processar mensagem recebida:", err);
@@ -72,7 +72,8 @@ async function findOrCreateContact(waId, name) {
   return prisma.contact.create({ data: { phone, name: name ?? phone } });
 }
 
-async function recordInboundMessage(entry) {
+// Mensagem do cliente (IN) ou resposta digitada no celular da empresa (OUT, via echo).
+async function recordMessage(entry) {
   // A CoverCut reenvia o webhook se não receber 200 a tempo — não duplica.
   const duplicate = await prisma.message.findFirst({
     where: { whatsappMessageId: entry.whatsappMessageId },
@@ -95,11 +96,11 @@ async function recordInboundMessage(entry) {
   const message = await prisma.message.create({
     data: {
       conversationId: conversation.id,
-      direction: "IN",
+      direction: entry.direction ?? "IN",
       type: entry.type ?? "TEXT",
       body: entry.text,
       whatsappMessageId: entry.whatsappMessageId,
-      status: "DELIVERED",
+      status: entry.direction === "OUT" ? "SENT" : "DELIVERED",
     },
   });
 

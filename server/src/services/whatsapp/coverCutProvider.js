@@ -92,16 +92,28 @@ export class CoverCutWhatsAppProvider extends WhatsAppProvider {
   }
 
   parseWebhookPayload(body) {
-    // O exemplo "completo" da doc não traz direction — só rejeitamos quando
-    // ele vier explicitamente diferente de inbound.
-    if (body?.event !== "message") return [];
-    if (body.direction && body.direction !== "inbound") return [];
+    let direction;
+    if (body?.event === "message") {
+      // O exemplo "completo" da doc não traz direction — só rejeitamos quando
+      // ele vier explicitamente diferente de inbound.
+      if (body.direction && body.direction !== "inbound") return [];
+      direction = "IN";
+    } else if (body?.event === "echo") {
+      // Echo "phone" = resposta digitada no app do WhatsApp do celular
+      // (coexistência). Echo "api" é o que o próprio CRM enviou e já gravou.
+      if (body.echo_source === "api") return [];
+      direction = "OUT";
+    } else {
+      return [];
+    }
 
     const message = body.message ?? {};
     const isText = message.type === "text";
 
     return [
       {
+        direction,
+        // Em mensagem e em echo, contact é sempre o cliente.
         from: body.contact?.wa_id ?? body.from_number ?? null,
         name: body.contact?.name ?? null,
         // Doc manda text como string; aceita também o formato Meta { body }.
@@ -135,5 +147,5 @@ function mimeToCoverCutType(mimetype = "") {
 // registramos que algo chegou, sem o arquivo.
 function mediaPlaceholder(message) {
   if (message.type === "unsupported") return "[mensagem não suportada pelo WhatsApp]";
-  return `[${message.type ?? "mídia"} recebido(a)]`;
+  return `[${message.type ?? "mídia"}]`;
 }

@@ -100,7 +100,7 @@ test("webhook covercut com assinatura válida cria contato, conversa e mensagem"
   assert.equal(conversation.status, "EM_ATENDIMENTO");
 });
 
-test("webhook covercut ignora eventos de echo (evita mensagem duplicada)", async () => {
+test("webhook covercut ignora echo da própria API (evita mensagem duplicada)", async () => {
   const body = {
     event: "echo",
     direction: "outbound",
@@ -200,4 +200,23 @@ test("webhook covercut de status atualiza mensagem enviada sem rebaixar", async 
 
   assert.equal(await sendStatus("read"), "READ");
   assert.equal(await sendStatus("delivered"), "READ", "delivered atrasado não pode rebaixar read");
+});
+
+test("webhook covercut grava echo do celular como mensagem enviada (OUT)", async () => {
+  const body = {
+    event: "echo",
+    direction: "outbound",
+    echo_source: "phone",
+    contact: { wa_id: "5547988887777", name: "João Silva" },
+    message: { id: "wamid_echo_phone", type: "text", text: "Respondi pelo celular" },
+  };
+  await request(app).post("/api/webhooks/covercut").set("x-bsp-signature", sign(body)).send(body);
+  const message = await waitForMessage("wamid_echo_phone");
+  assert.ok(message, "resposta dada no celular deveria aparecer no CRM");
+  assert.equal(message.direction, "OUT");
+  assert.equal(message.body, "Respondi pelo celular");
+
+  const contact = await prisma.contact.findUnique({ where: { phone: "+55 47 98888-7777" } });
+  const conversation = await prisma.conversation.findUnique({ where: { id: message.conversationId } });
+  assert.equal(conversation.contactId, contact.id, "echo entra na conversa do cliente, não do número da empresa");
 });
