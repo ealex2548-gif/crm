@@ -15,12 +15,17 @@ export function useChatMessages(activeId) {
     const socket = getSocket();
     socket.emit("conversation:join", activeId);
 
+    // O socket pode estar em salas de outras conversas — só aceita as desta.
     const onNewMessage = (raw) => {
+      if (raw.conversationId !== activeId) return;
       const message = mapMessage(raw);
       setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
     };
     socket.on("message:new", onNewMessage);
-    return () => socket.off("message:new", onNewMessage);
+    return () => {
+      socket.off("message:new", onNewMessage);
+      socket.emit("conversation:leave", activeId);
+    };
   }, [activeId]);
 
   const sendMessage = async (contactId, text) => {

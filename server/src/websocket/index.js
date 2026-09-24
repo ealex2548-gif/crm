@@ -21,6 +21,7 @@ export function getIO() {
  *   "ticket:updated"       -> broadcast geral (Kanban/Tickets não têm sala própria ainda)
  * Eventos recebidos:
  *   "conversation:join" (conversationId) -> entra na sala da conversa
+ *   "conversation:leave" (conversationId) -> sai da sala ao trocar de conversa
  */
 export function createWebSocketServer(httpServer) {
   const io = new Server(httpServer, {
@@ -44,6 +45,10 @@ export function createWebSocketServer(httpServer) {
 
     socket.on("conversation:join", (conversationId) => {
       socket.join(`conversation:${conversationId}`);
+    });
+
+    socket.on("conversation:leave", (conversationId) => {
+      socket.leave(`conversation:${conversationId}`);
     });
 
     socket.on("disconnect", () => {
