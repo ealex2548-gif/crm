@@ -27,10 +27,20 @@ export const env = {
   jwtSecret,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "8h",
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
+  // Usado para montar a URL pública de mídia enviada (ex: CoverCut precisa
+  // de um link https:// acessível para imagem/áudio/vídeo/documento).
+  publicBaseUrl: process.env.PUBLIC_BASE_URL ?? "http://localhost:3001",
   whatsapp: {
     provider: process.env.WHATSAPP_PROVIDER ?? "mock",
     token: process.env.WHATSAPP_TOKEN ?? "",
     phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID ?? "",
     verifyToken: process.env.WHATSAPP_VERIFY_TOKEN ?? "",
+    covercut: {
+      apiKey: process.env.COVERCUT_API_KEY ?? "",
+      apiSecret: process.env.COVERCUT_API_SECRET ?? "",
+      webhookSecret: process.env.COVERCUT_WEBHOOK_SECRET ?? "",
+      phoneNumberId: process.env.COVERCUT_PHONE_NUMBER_ID ?? "",
+      baseUrl: process.env.COVERCUT_BASE_URL ?? "https://api.covercut.com.br/api/v1",
+    },
   },
 };

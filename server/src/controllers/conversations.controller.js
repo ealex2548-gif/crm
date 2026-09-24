@@ -1,6 +1,7 @@
 import { prisma } from "../config/prisma.js";
 import { getIO } from "../websocket/index.js";
 import { whatsappProvider } from "../services/whatsapp/index.js";
+import { env } from "../config/env.js";
 import { PRIORITIES, CONVERSATION_STATUSES, MESSAGE_TYPES } from "../constants/enums.js";
 import { recordAudit } from "../services/auditLog.js";
 import { computeSla } from "../constants/sla.js";
@@ -157,7 +158,11 @@ export async function uploadMedia(req, res) {
   if (!conversation) return res.status(404).json({ error: "Conversa não encontrada" });
 
   const mediaUrl = `/uploads/${req.file.filename}`;
-  const sent = await whatsappProvider.sendMediaMessage(conversation.contact.phone, mediaUrl);
+  const sent = await whatsappProvider.sendMediaMessage(
+    conversation.contact.phone,
+    `${env.publicBaseUrl}${mediaUrl}`,
+    { mimetype: req.file.mimetype, filename: req.file.originalname, filePath: req.file.path }
+  );
 
   const message = await prisma.message.create({
     data: {

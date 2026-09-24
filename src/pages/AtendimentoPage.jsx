@@ -24,12 +24,13 @@ useEffect(()=>{
   window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h)
 },[draft,activeId]);
 
-const send=()=>{if(!draft.trim()||!activeId)return;sendMessage(activeId,draft);setDraft("")};
+// Falha no WhatsApp (ex.: janela de 24h vencida) volta o texto para o campo e avisa o atendente.
+const send=()=>{if(!draft.trim()||!activeId)return;const text=draft;setDraft("");sendMessage(activeId,text).catch(e=>{setDraft(text);window.alert(e.message)})};
 const note=()=>{const t=window.prompt("Digite a nota interna:");if(activeId)addNote(activeId,t)};
 const reply=(text)=>setDraft(`Respondendo: ${text.slice(0,40)} — `);
 const ticketFromMessage=(text)=>createTicket({contactId:active.contactId,conversationId:active.id,title:text.slice(0,42),priority:active.priority,ownerId:active.assignedAgentId,deadline:null});
 const updateActiveConversation=(patch)=>activeId&&updateConversation(activeId,patch);
-const sendFile=(file)=>activeId&&sendMedia(activeId,file);
+const sendFile=(file)=>activeId&&sendMedia(activeId,file).catch(e=>window.alert(e.message));
 
 if(loading)return <div className="workspace"><section className="list-panel"><div className="list-head"><h1>Carregando...</h1></div></section></div>;
 if(!active)return <div className="workspace"><section className="list-panel"><div className="list-head"><h1>Nenhuma conversa</h1></div></section></div>;

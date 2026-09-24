@@ -12,6 +12,7 @@ import { usersRouter } from "./routes/users.routes.js";
 import { auditLogRouter } from "./routes/auditLog.routes.js";
 import { dashboardRouter } from "./routes/dashboard.routes.js";
 import { reportsRouter } from "./routes/reports.routes.js";
+import { webhooksRouter } from "./routes/webhooks.routes.js";
 import { notFoundHandler, errorHandler } from "./middleware/errorHandler.js";
 
 export function createApp() {
@@ -19,7 +20,9 @@ export function createApp() {
 
   app.use(helmet());
   app.use(cors({ origin: env.corsOrigin }));
-  app.use(express.json());
+  // Guarda o corpo bruto (antes do parse) em req.rawBody — necessário para
+  // validar a assinatura HMAC (X-BSP-Signature) dos webhooks da CoverCut.
+  app.use(express.json({ verify: (req, _res, buf) => { req.rawBody = buf; } }));
 
   // helmet marca recursos como same-origin por padrão; sem isso o frontend
   // (outra origem em dev) não consegue exibir as imagens/anexos enviados.
@@ -43,6 +46,7 @@ export function createApp() {
   app.use("/api/audit-logs", auditLogRouter);
   app.use("/api/dashboard", dashboardRouter);
   app.use("/api/reports", reportsRouter);
+  app.use("/api/webhooks", webhooksRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

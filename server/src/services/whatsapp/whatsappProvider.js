@@ -6,7 +6,9 @@
  * precisa mudar no resto do backend.
  *
  * sendTextMessage(to, body) -> Promise<{ id: string }>
- * sendMediaMessage(to, mediaUrl) -> Promise<{ id: string }>
+ * sendMediaMessage(to, mediaUrl, meta?) -> Promise<{ id: string }>
+ *   meta opcional: { mimetype, filename, caption } — usado por provedores
+ *   reais para escolher o tipo (image/video/audio/document) e legendas.
  * verifyWebhook(query) -> string | null   (challenge do handshake da Meta)
  * parseWebhookPayload(body) -> { from, text, whatsappMessageId, timestamp }[]
  */
@@ -15,7 +17,7 @@ export class WhatsAppProvider {
     throw new Error("sendTextMessage não implementado");
   }
 
-  async sendMediaMessage(_to, _mediaUrl) {
+  async sendMediaMessage(_to, _mediaUrl, _meta) {
     throw new Error("sendMediaMessage não implementado");
   }
 

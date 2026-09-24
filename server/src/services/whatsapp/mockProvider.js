@@ -13,7 +13,7 @@ export class MockWhatsAppProvider extends WhatsAppProvider {
     return { id };
   }
 
-  async sendMediaMessage(to, mediaUrl) {
+  async sendMediaMessage(to, mediaUrl, _meta) {
     const id = `mock_${Date.now()}`;
     console.log(`[whatsapp:mock] enviando mídia para ${to}: ${mediaUrl} (id=${id})`);
     return { id };
