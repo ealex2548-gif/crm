@@ -68,68 +68,72 @@ async function main() {
     });
   }
 
-  console.log("Seeding contatos e conversas...");
-  const contactById = {};
-  const conversationByMockContactId = {};
-  for (const c of mockContacts) {
-    const contact = await prisma.contact.upsert({
-      where: { phone: c.phone },
-      update: {},
-      create: {
-        name: c.name,
-        phone: c.phone,
-        company: c.company,
-        city: c.city,
-        plan: c.plan,
-        pdvVersion: c.version,
-        pdvTerminals: c.terminals,
-        pdvDatabase: c.db,
-        sectorId: sectorByName[c.sector]?.id,
-      },
-    });
-    contactById[c.id] = contact;
+  // Clientes, conversas e tickets de exemplo (do protótipo) só com SEED_DEMO=1 —
+  // em produção o CRM começa vazio e se enche com as mensagens reais do WhatsApp.
+  if (process.env.SEED_DEMO === "1") {
+    console.log("Seeding contatos e conversas...");
+    const contactById = {};
+    const conversationByMockContactId = {};
+    for (const c of mockContacts) {
+      const contact = await prisma.contact.upsert({
+        where: { phone: c.phone },
+        update: {},
+        create: {
+          name: c.name,
+          phone: c.phone,
+          company: c.company,
+          city: c.city,
+          plan: c.plan,
+          pdvVersion: c.version,
+          pdvTerminals: c.terminals,
+          pdvDatabase: c.db,
+          sectorId: sectorByName[c.sector]?.id,
+        },
+      });
+      contactById[c.id] = contact;
 
-    const conversation = await prisma.conversation.create({
-      data: {
-        contactId: contact.id,
-        sectorId: sectorByName[c.sector]?.id,
-        assignedAgentId: userByName[c.agent]?.id,
-        priority: PRIORITY_MAP[c.priority] ?? "NORMAL",
-        status: "EM_ATENDIMENTO",
-      },
-    });
-    conversationByMockContactId[c.id] = conversation;
-
-    const messages = mockMessages[c.id] ?? [];
-    for (const m of messages) {
-      const direction = m.side === "in" ? "IN" : "OUT";
-      const type = m.side === "note" ? "NOTE" : "TEXT";
-      await prisma.message.create({
+      const conversation = await prisma.conversation.create({
         data: {
-          conversationId: conversation.id,
-          direction,
-          type,
-          body: m.text,
-          sentById: type !== "TEXT" || direction === "OUT" ? userByName[c.agent]?.id : undefined,
+          contactId: contact.id,
+          sectorId: sectorByName[c.sector]?.id,
+          assignedAgentId: userByName[c.agent]?.id,
+          priority: PRIORITY_MAP[c.priority] ?? "NORMAL",
+          status: "EM_ATENDIMENTO",
+        },
+      });
+      conversationByMockContactId[c.id] = conversation;
+
+      const messages = mockMessages[c.id] ?? [];
+      for (const m of messages) {
+        const direction = m.side === "in" ? "IN" : "OUT";
+        const type = m.side === "note" ? "NOTE" : "TEXT";
+        await prisma.message.create({
+          data: {
+            conversationId: conversation.id,
+            direction,
+            type,
+            body: m.text,
+            sentById: type !== "TEXT" || direction === "OUT" ? userByName[c.agent]?.id : undefined,
+          },
+        });
+      }
+    }
+
+    console.log("Seeding tickets...");
+    for (const t of mockTickets) {
+      const contact = mockContacts.find((c) => c.company === t.client);
+      if (!contact) continue;
+      await prisma.ticket.create({
+        data: {
+          contactId: contactById[contact.id].id,
+          conversationId: conversationByMockContactId[contact.id]?.id,
+          title: t.title,
+          status: TICKET_STATUS_MAP[t.status] ?? "NOVO",
+          priority: PRIORITY_MAP[t.priority] ?? "NORMAL",
+          ownerId: userByName[t.owner]?.id,
         },
       });
     }
-  }
-
-  console.log("Seeding tickets...");
-  for (const t of mockTickets) {
-    const contact = mockContacts.find((c) => c.company === t.client);
-    if (!contact) continue;
-    await prisma.ticket.create({
-      data: {
-        contactId: contactById[contact.id].id,
-        conversationId: conversationByMockContactId[contact.id]?.id,
-        title: t.title,
-        status: TICKET_STATUS_MAP[t.status] ?? "NOVO",
-        priority: PRIORITY_MAP[t.priority] ?? "NORMAL",
-        ownerId: userByName[t.owner]?.id,
-      },
-    });
   }
 
   console.log("Seeding respostas rápidas...");

@@ -1,0 +1,54 @@
+// Remove os clientes de exemplo do protótipo (prisma/seedData/contacts.js)
+// junto com as conversas, mensagens e tickets deles.
+//
+// Sem argumentos só mostra o que seria apagado. Para apagar de verdade:
+//   node scripts/remove-demo-data.js --apply
+import { PrismaClient } from "@prisma/client";
+import { contacts as demoContacts } from "../prisma/seedData/contacts.js";
+
+const prisma = new PrismaClient();
+const apply = process.argv.includes("--apply");
+
+async function main() {
+  const contacts = await prisma.contact.findMany({
+    where: { phone: { in: demoContacts.map((c) => c.phone) } },
+    select: { id: true, name: true, phone: true },
+  });
+  const contactIds = contacts.map((c) => c.id);
+  const conversations = await prisma.conversation.findMany({
+    where: { contactId: { in: contactIds } },
+    select: { id: true },
+  });
+  const conversationIds = conversations.map((c) => c.id);
+
+  const counts = {
+    mensagens: await prisma.message.count({ where: { conversationId: { in: conversationIds } } }),
+    tickets: await prisma.ticket.count({ where: { contactId: { in: contactIds } } }),
+    conversas: conversationIds.length,
+    contatos: contactIds.length,
+  };
+
+  console.log("Contatos de exemplo encontrados:");
+  for (const c of contacts) console.log(`  - ${c.name} (${c.phone})`);
+  console.log("Total:", counts);
+
+  if (!apply) {
+    console.log("\nNada foi apagado. Rode com --apply para apagar.");
+    return;
+  }
+
+  await prisma.$transaction([
+    prisma.message.deleteMany({ where: { conversationId: { in: conversationIds } } }),
+    prisma.ticket.deleteMany({ where: { contactId: { in: contactIds } } }),
+    prisma.conversation.deleteMany({ where: { id: { in: conversationIds } } }),
+    prisma.contact.deleteMany({ where: { id: { in: contactIds } } }),
+  ]);
+  console.log("\nApagado.");
+}
+
+main()
+  .catch((err) => {
+    console.error(err);
+    process.exitCode = 1;
+  })
+  .finally(() => prisma.$disconnect());

@@ -15,7 +15,7 @@ const[quick,setQuick]=useState({});
 const[draft,setDraft]=useState("");
 const[detailsOpen,setDetailsOpen]=useState(true),[mobile,setMobile]=useState("list"),[tab,setTab]=useState("cliente");
 const[summaryOpen,setSummaryOpen]=useState(true),[quickOpen,setQuickOpen]=useState(false),[quickCat,setQuickCat]=useState("PDV");
-const[finishOpen,setFinishOpen]=useState(false),[searchChat,setSearchChat]=useState(""),[typing]=useState(true),[audio,setAudio]=useState(false);
+const[finishOpen,setFinishOpen]=useState(false),[searchChat,setSearchChat]=useState(""),[audio,setAudio]=useState(false);
 
 useEffect(()=>{getQuickReplies().then(setQuick)},[]);
 
@@ -51,7 +51,6 @@ return <>
   quick={quick}
   messages={messages}
   summaryOpen={summaryOpen} setSummaryOpen={setSummaryOpen}
-  typing={typing}
   draft={draft} setDraft={setDraft}
   onSend={send}
   onSendFile={sendFile}
