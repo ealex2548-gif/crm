@@ -24,6 +24,8 @@ const[quickOpen,setQuickOpen]=useState(false),[searchChat,setSearchChat]=useStat
 const[modal,setModal]=useState(null); // "note" | "transfer" | "ticket" | "finish"
 const[ticketTitle,setTicketTitle]=useState("");
 const[convTickets,setConvTickets]=useState([]);
+// Conversas em atendimento por outra pessoa em que a gestão clicou "Participar".
+const[joinedIds,setJoinedIds]=useState(()=>new Set());
 
 const loadQuickReplies=useCallback(()=>getQuickReplies().then(setQuickReplies),[]);
 useEffect(()=>{loadQuickReplies()},[loadQuickReplies]);
@@ -71,6 +73,8 @@ return <>
 <ChatPanel
   userId={user?.id}
   onAccept={()=>acceptConversation(activeId)}
+  joined={joinedIds.has(activeId)}
+  onJoin={async()=>{await addNote(activeId,`👤 ${user?.name??"Gestor"} entrou no atendimento`);setJoinedIds(s=>new Set(s).add(activeId))}}
   active={active}
   mobile={mobile} setMobile={setMobile}
   detailsOpen={detailsOpen} setDetailsOpen={setDetailsOpen}

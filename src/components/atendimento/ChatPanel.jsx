@@ -6,7 +6,7 @@ import{QuickRepliesPopover}from"./QuickRepliesPopover";
 import{Composer}from"./Composer";
 import{AcceptBar}from"./AcceptBar";
 
-export function ChatPanel({userId,onAccept,active,mobile,setMobile,detailsOpen,setDetailsOpen,searchChat,setSearchChat,setPage,ticket,onTicket,onTransfer,onNote,quickOpen,setQuickOpen,quickReplies,canManage,onQuickChanged,messages,draft,setDraft,onSend,onSendFile,onReply,onNewTicket,onFinish}){
+export function ChatPanel({userId,onAccept,joined,onJoin,active,mobile,setMobile,detailsOpen,setDetailsOpen,searchChat,setSearchChat,setPage,ticket,onTicket,onTransfer,onNote,quickOpen,setQuickOpen,quickReplies,canManage,onQuickChanged,messages,draft,setDraft,onSend,onSendFile,onReply,onNewTicket,onFinish}){
 return <section className={"chat-panel "+(mobile==="chat"?"mobile-show":"")}>
 <ChatHeader active={active} detailsOpen={detailsOpen} setDetailsOpen={setDetailsOpen} setMobile={setMobile} searchChat={searchChat} setSearchChat={setSearchChat}/>
 <ChatStatusBar active={active} onFinish={onFinish}/>
@@ -16,6 +16,7 @@ return <section className={"chat-panel "+(mobile==="chat"?"mobile-show":"")}>
 {/* Sem responsável: fechada até alguém iniciar. Com colega atendendo: atendente só lê (gestão pode intervir). */}
 {!active.assignedAgentId||(active.status==="Aguardando aceite"&&(active.assignedAgentId===userId||canManage))?<AcceptBar active={active} mine={active.assignedAgentId===userId} onAccept={onAccept} onTransfer={onTransfer}/>
 :active.assignedAgentId!==userId&&!canManage?<AcceptBar active={active} takenBy={active.agent}/>
+:active.assignedAgentId!==userId&&!joined?<AcceptBar active={active} takenBy={active.agent} onJoin={onJoin}/>
 :<Composer draft={draft} setDraft={setDraft} onSend={onSend} onSendFile={onSendFile}/>}
 </section>
 }
