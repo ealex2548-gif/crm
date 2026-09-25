@@ -614,3 +614,19 @@ test("transferir para uma pessoa: chega fechada (aguardando aceite) até ela ini
   assert.equal(assume.status, 200);
   assert.equal(assume.body.assignedAgent.name, "Teste Admin");
 });
+
+test("nota interna de voz: fica só no CRM, sem ir ao WhatsApp e sem precisar iniciar o atendimento", async () => {
+  const auth = { Authorization: `Bearer ${adminToken}` };
+  const cliente = await prisma.contact.create({ data: { name: "Cliente Nota Voz", phone: "+5592900000222" } });
+  const conv = await prisma.conversation.create({ data: { contactId: cliente.id, status: "EM_ATENDIMENTO" } });
+
+  const res = await request(app)
+    .post(`/api/conversations/${conv.id}/notes/media`)
+    .set(auth)
+    .attach("file", Buffer.from("fake-webm"), { filename: "nota.webm", contentType: "audio/webm" });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.type, "NOTE");
+  assert.equal(res.body.body, "🎤 Áudio");
+  assert.match(res.body.mediaUrl, /^\/uploads\/.+\.webm$/);
+  assert.equal(res.body.whatsappMessageId, null, "nota não é enviada ao WhatsApp");
+});

@@ -39,3 +39,10 @@ export async function sendMedia(conversationId, file) {
   const message = await apiUpload(`/api/conversations/${conversationId}/media`, formData);
   return mapMessage(message);
 }
+
+// Nota interna de voz (gravada no navegador) — fica só no CRM, não vai ao WhatsApp.
+export async function addNoteAudio(conversationId, blob) {
+  const formData = new FormData();
+  formData.append("file", new File([blob], "nota.webm", { type: "audio/webm" }));
+  return mapMessage(await apiUpload(`/api/conversations/${conversationId}/notes/media`, formData));
+}

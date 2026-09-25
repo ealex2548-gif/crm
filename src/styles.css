@@ -140,3 +140,13 @@ audio.bubble-media{min-width:260px;margin:0 0 4px}
 .chat-empty p{margin:0;color:#667781;font-size:14px}
 @media(max-width:900px){.chat-empty{display:none}}
 .tags i.done-tag{background:#e9edef;color:#667781;font-weight:600}
+/* Gravador de nota de voz (janelas Nota e Transferir) */
+.rec-row{display:flex;align-items:center;gap:10px;margin:4px 0 12px;flex-wrap:wrap}
+.rec-row .audio-player{flex:1;min-width:0;background:#f0f2f5;border-radius:10px;padding:6px 10px 2px}
+.rec-btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;font:inherit;font-size:13px;color:#3b4a54;cursor:pointer}.rec-btn svg{width:15px}
+.rec-btn.stop{border-color:#e8b4b4;color:#c23a3a}
+.rec-dot{width:10px;height:10px;border-radius:50%;background:#e53935;animation:rec-blink 1s infinite}
+@keyframes rec-blink{50%{opacity:.25}}
+.rec-time{font-size:13px;color:#3b4a54}
+.rec-hint{font-size:12px;color:var(--muted);margin:2px 0 12px}
+.rec-error{font-size:12px;color:#c23a3a}

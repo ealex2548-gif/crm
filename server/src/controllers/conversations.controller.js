@@ -268,6 +268,29 @@ export async function createMessage(req, res) {
   res.status(201).json(message);
 }
 
+// Nota interna com arquivo (ex.: áudio gravado ao transferir): fica só no CRM,
+// não vai para o WhatsApp. Como toda nota, não exige ter iniciado o atendimento.
+export async function uploadNoteMedia(req, res) {
+  if (!req.file) return res.status(400).json({ error: "Nenhum arquivo enviado" });
+  const conversation = await findAccessible(req);
+  if (!conversation) return res.status(404).json({ error: "Conversa não encontrada" });
+
+  const message = await prisma.message.create({
+    data: {
+      conversationId: conversation.id,
+      direction: "OUT",
+      type: "NOTE",
+      body: req.file.mimetype.startsWith("audio/") ? "🎤 Áudio" : req.file.originalname,
+      mediaUrl: `/uploads/${req.file.filename}`,
+      sentById: req.user.sub,
+      status: "SENT",
+    },
+  });
+
+  getIO()?.to(`conversation:${conversation.id}`).emit("message:new", message);
+  res.status(201).json(message);
+}
+
 export async function uploadMedia(req, res) {
   if (!req.file) return res.status(400).json({ error: "Nenhum arquivo enviado" });
 

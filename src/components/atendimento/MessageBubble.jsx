@@ -24,7 +24,7 @@ i%2?<a key={i} href={part.startsWith("http")?part:`https://${part}`} target="_bl
 export function MessageBubble({m,first,onReply,onNewTicket}){
 const[menu,setMenu]=useState(false);
 const isImage=m.mediaUrl&&/\.(png|jpe?g|gif|webp)$/i.test(m.mediaUrl);
-const isAudio=m.mediaUrl&&/\.(ogg|mp3|m4a|aac|amr|wav)$/i.test(m.mediaUrl);
+const isAudio=m.mediaUrl&&/\.(ogg|mp3|m4a|aac|amr|wav|webm)$/i.test(m.mediaUrl);
 // Figurinha chega como imagem com o rótulo "Figurinha" (ver webhook): no WhatsApp
 // ela é pequena e sem balão em volta.
 const isSticker=isImage&&m.text==="Figurinha";

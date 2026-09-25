@@ -6,6 +6,7 @@ import{getQuickReplies}from"../services/quickRepliesService";
 import{updateConversation,acceptConversation,setConversationRead}from"../services/conversationsService";
 import{getConversationTickets}from"../services/ticketsService";
 import{getSocket}from"../services/socket";
+import{addNoteAudio}from"../services/messagesService";
 import{ConversationListPanel}from"../components/atendimento/ConversationListPanel";
 import{ChatPanel}from"../components/atendimento/ChatPanel";
 import{ClientDetailsPanel}from"../components/atendimento/ClientDetailsPanel";
@@ -60,6 +61,13 @@ const finish=async({reason,solution})=>{
 await addNote(activeId,`✅ Atendimento finalizado — ${reason}${solution?`: ${solution}`:""}`);
 await updateConversation(activeId,{status:"Finalizado"});
 };
+// Nota interna com texto e/ou áudio (janela Nota e recado da janela Transferir).
+const saveNote=async({text,audio}={})=>{
+if(text)await addNote(activeId,text);
+if(audio)await addNoteAudio(activeId,audio);
+};
+// Recado primeiro: se a conversa sair do seu alcance após transferir, a nota já ficou.
+const transfer=async(patch,note)=>{await saveNote(note);await updateConversation(activeId,patch)};
 const updateActiveConversation=(patch)=>activeId&&updateConversation(activeId,patch);
 const sendFile=(file)=>activeId&&sendMedia(activeId,file).catch(e=>window.alert(e.message));
 
@@ -96,8 +104,8 @@ return <>
 <ClientDetailsPanel active={active} mobile={mobile} setMobile={setMobile} tab={tab} setTab={setTab} setPage={setPage} ticketsPageTarget={ticketsPageTarget} onUpdate={updateActiveConversation} onClose={()=>setDetailsOpen(false)}/>
 </>}
 </div>
-{active&&modal==="note"&&<NoteModal onSave={(text)=>addNote(activeId,text)} onClose={close}/>}
-{active&&modal==="transfer"&&<TransferModal active={active} onSave={(patch)=>updateConversation(activeId,patch)} onClose={close}/>}
+{active&&modal==="note"&&<NoteModal onSave={saveNote} onClose={close}/>}
+{active&&modal==="transfer"&&<TransferModal active={active} onSave={transfer} onClose={close}/>}
 {active&&modal==="ticket"&&<NewTicketModal active={active} defaultTitle={ticketTitle} onSave={saveTicket} onClose={close}/>}
 {active&&modal==="finish"&&<FinishServiceModal onConfirm={finish} onClose={close}/>}
 </>

@@ -17,6 +17,7 @@ const ALLOWED_MIME = [
   "audio/mpeg",
   "audio/ogg",
   "audio/wav",
+  "audio/webm", // gravação do navegador (nota de voz interna)
   "video/mp4",
   "application/pdf",
 ];

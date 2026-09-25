@@ -9,6 +9,7 @@ import {
   listMessages,
   createMessage,
   uploadMedia,
+  uploadNoteMedia,
   acceptConversation,
   setConversationRead,
 } from "../controllers/conversations.controller.js";
@@ -25,3 +26,4 @@ conversationsRouter.post("/:id/read", asyncHandler(setConversationRead));
 conversationsRouter.get("/:id/messages", asyncHandler(listMessages));
 conversationsRouter.post("/:id/messages", asyncHandler(createMessage));
 conversationsRouter.post("/:id/media", upload.single("file"), asyncHandler(uploadMedia));
+conversationsRouter.post("/:id/notes/media", upload.single("file"), asyncHandler(uploadNoteMedia));
