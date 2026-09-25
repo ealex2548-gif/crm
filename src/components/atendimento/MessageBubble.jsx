@@ -33,7 +33,7 @@ const meta=<span className="meta">{m.time}<Ticks m={m}/></span>;
 const act=(fn)=>{setMenu(false);fn()};
 
 return <div className={"bubble-wrap "+m.side+(first?" first":"")} onMouseLeave={()=>setMenu(false)}>
-<div className={"bubble "+m.side+(first?" tail":"")}>
+<div className={"bubble "+m.side+(first?" tail":"")+(isAudio?" audio":"")}>
 {m.side==="note"&&<b className="note-title">📝 Nota interna</b>}
 {isImage&&<img src={m.mediaUrl} alt={m.text||"imagem"} className="bubble-media"/>}
 {isAudio&&<AudioPlayer src={m.mediaUrl}/>}

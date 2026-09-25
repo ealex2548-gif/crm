@@ -1,5 +1,5 @@
 import{useEffect,useRef,useState}from"react";
-import{Play,Pause}from"lucide-react";
+import{Play,Pause,Mic}from"lucide-react";
 
 const SPEEDS=[1,1.5,2];
 const fmt=(s)=>!isFinite(s)?"0:00":`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`;
@@ -41,6 +41,7 @@ return <div className="audio-player">
 <input type="range" min={0} max={duration||0} step={0.1} value={Math.min(time,duration||0)} onChange={seek} style={{"--pct":`${duration?(time/duration)*100:0}%`}}/>
 <span className="audio-time">{fmt(playing||time?time:duration)}</span>
 </div>
-<button type="button" className="audio-speed" onClick={cycleSpeed} title="Velocidade">{String(speed).replace(".",",")}x</button>
+{/* Como no WhatsApp: parado mostra o microfone; tocando, a velocidade. */}
+{playing||speed!==1?<button type="button" className="audio-speed" onClick={cycleSpeed} title="Velocidade">{String(speed).replace(".",",")}x</button>:<span className="audio-mic"><Mic/></span>}
 </div>
 }

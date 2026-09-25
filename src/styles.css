@@ -73,3 +73,15 @@ audio.bubble-media{min-width:260px;margin:0 0 4px}
 .kb-search{max-width:420px;margin:0 0 14px}
 .kb-modal{width:min(620px,calc(100% - 30px))}.kb-body{white-space:pre-wrap;font-size:14px;line-height:1.5;margin:14px 0;max-height:60vh;overflow:auto}.kb-textarea{min-height:200px}
 .tools button svg{width:13px}
+/* Áudio: duração à esquerda e horário/tique à direita na mesma linha (como no WhatsApp) */
+.audio-player{min-width:280px;max-width:340px;gap:8px;padding:4px 0 14px}
+.audio-play{width:30px;height:30px}.audio-play svg{width:22px;height:22px}
+.audio-track{position:relative;align-self:center}
+.audio-track input{height:3px}
+.audio-track input::-webkit-slider-thumb{width:11px;height:11px}
+.audio-track input::-moz-range-thumb{width:11px;height:11px}
+.audio-time{position:absolute;left:0;top:10px;line-height:15px}
+.audio-mic{width:30px;height:30px;border-radius:50%;background:#00a884;color:#fff;display:grid;place-items:center;flex:0 0 auto}.audio-mic svg{width:16px}
+.audio-speed{min-width:36px}
+.bubble.audio .only-meta{height:0}
+.bubble.audio .meta{bottom:5px}
