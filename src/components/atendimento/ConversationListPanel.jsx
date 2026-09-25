@@ -2,10 +2,11 @@ import{useState}from"react";
 import{Search}from"lucide-react";
 import{ConversationItem}from"./ConversationItem";
 
-// Finalizadas saem da lista principal e ficam no filtro próprio.
+// "Todas" mostra tudo, inclusive finalizadas (etiqueta cinza); os outros filtros
+// olham só o que está em andamento, e "Finalizadas" separa o histórico.
 const FILTERS=[
-["todas","Todas",(c)=>c.status!=="Finalizado"],
-["naoLidas","Não lidas",(c)=>c.status!=="Finalizado"&&c.unread>0],
+["todas","Todas",()=>true],
+["naoLidas","Não lidas",(c)=>c.unread>0],
 ["meus","Meus atendimentos",(c,userId)=>c.status!=="Finalizado"&&c.assignedAgentId===userId],
 ["sla","SLA crítico",(c)=>c.status!=="Finalizado"&&c.slaStatus==="breached"],
 ["finalizadas","Finalizadas",(c)=>c.status==="Finalizado"],
