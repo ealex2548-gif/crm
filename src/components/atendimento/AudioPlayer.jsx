@@ -28,6 +28,16 @@ a.addEventListener("ended",onEnd);
 return()=>{a.pause();a.removeEventListener("loadedmetadata",onMeta);a.removeEventListener("durationchange",onMeta);a.removeEventListener("timeupdate",onTime);a.removeEventListener("ended",onEnd);audioRef.current=null};
 },[src]);
 
+// O evento timeupdate só dispara ~4x por segundo (barra "aos pulos"); enquanto
+// toca, acompanha a posição a cada quadro para a barra deslizar suave.
+useEffect(()=>{
+if(!playing)return;
+let frame;
+const tick=()=>{if(audioRef.current)setTime(audioRef.current.currentTime);frame=requestAnimationFrame(tick)};
+frame=requestAnimationFrame(tick);
+return()=>cancelAnimationFrame(frame);
+},[playing]);
+
 const toggle=()=>{
 const a=audioRef.current;if(!a)return;
 if(playing){a.pause();setPlaying(false)}
