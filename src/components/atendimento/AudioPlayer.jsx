@@ -49,7 +49,7 @@ const cycleSpeed=()=>{const next=SPEEDS[(SPEEDS.indexOf(speed)+1)%SPEEDS.length]
 return <div className="audio-player">
 <button type="button" className="audio-play" onClick={toggle} title={playing?"Pausar":"Ouvir"}>{playing?<Pause/>:<Play/>}</button>
 <div className="audio-track">
-<input type="range" min={0} max={duration||0} step={0.1} value={Math.min(time,duration||0)} onChange={seek} style={{"--pct":`${duration?(time/duration)*100:0}%`}}/>
+<input type="range" min={0} max={duration||0} step="any" value={Math.min(time,duration||0)} onChange={seek} style={{"--pct":`${duration?(time/duration)*100:0}%`}}/>
 </div>
 {/* Como no WhatsApp: parado mostra o microfone; tocando, a velocidade. */}
 <div className="audio-side">{playing||speed!==1?<button type="button" className="audio-speed" onClick={cycleSpeed} title="Velocidade">{String(speed).replace(".",",")}x</button>:<span className="audio-mic"><Mic/></span>}</div>
