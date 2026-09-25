@@ -6,6 +6,7 @@ import { PRIORITIES, CONVERSATION_STATUSES, MESSAGE_TYPES } from "../constants/e
 import { recordAudit } from "../services/auditLog.js";
 import { computeSla } from "../constants/sla.js";
 import { conversationScope } from "../services/access.js";
+import { getEntrySectorId } from "../services/entrySector.js";
 
 // Conversa que este usuário pode ver (atendente: só as atribuídas a ele).
 // Fora do alcance responde 404, como se não existisse.
@@ -81,6 +82,10 @@ export async function updateConversation(req, res) {
 
   if (!(await findAccessible(req))) return res.status(404).json({ error: "Conversa não encontrada" });
 
+  // Finalizar devolve a conversa para o setor de entrada, sem responsável.
+  const finishing = status === "FINALIZADO";
+  const entrySectorId = finishing ? await getEntrySectorId() : null;
+
   const conversation = await prisma.conversation.update({
     where: { id: req.params.id },
     data: {
@@ -88,6 +93,7 @@ export async function updateConversation(req, res) {
       ...(status && { status, closedAt: status === "FINALIZADO" ? new Date() : null }),
       ...(sectorId !== undefined && { sectorId }),
       ...(assignedAgentId !== undefined && { assignedAgentId }),
+      ...(finishing && { sectorId: entrySectorId, assignedAgentId: null }),
     },
     include: {
       contact: true,

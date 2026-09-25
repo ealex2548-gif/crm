@@ -98,6 +98,8 @@ test("webhook covercut com assinatura válida cria contato, conversa e mensagem"
   const conversation = await prisma.conversation.findFirst({ where: { contactId: contact.id } });
   assert.ok(conversation);
   assert.equal(conversation.status, "EM_ATENDIMENTO");
+  const sector = await prisma.sector.findUnique({ where: { id: conversation.sectorId } });
+  assert.equal(sector.name, "Geral", "conversa nova chega no setor de entrada");
 });
 
 test("webhook covercut ignora echo da própria API (evita mensagem duplicada)", async () => {

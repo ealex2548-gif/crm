@@ -483,3 +483,30 @@ test("visibilidade: atendente vê só as conversas atribuídas a ele ou do setor
   const suporte = await prisma.sector.findFirst({ where: { name: "Suporte" } });
   await prisma.user.update({ where: { id: agent.id }, data: { sectorId: suporte.id } });
 });
+
+test("fluxo Geral: finalizar devolve a conversa ao Geral, sem responsável, e o atendente deixa de ver", async () => {
+  const auth = (t) => ({ Authorization: `Bearer ${t}` });
+  const agent = await prisma.user.findUnique({ where: { email: "agente@test.com" } });
+  const suporte = await prisma.sector.findFirst({ where: { name: "Suporte" } });
+  const cliente = await prisma.contact.create({ data: { name: "Cliente Fluxo", phone: "+5592900000077" } });
+
+  // Você distribuiu para o Suporte / atendente.
+  const conv = await prisma.conversation.create({
+    data: { contactId: cliente.id, status: "EM_ATENDIMENTO", sectorId: suporte.id, assignedAgentId: agent.id },
+  });
+  const antes = (await request(app).get("/api/conversations").set(auth(agentToken))).body.map((c) => c.id);
+  assert.ok(antes.includes(conv.id));
+
+  // Atendente finaliza.
+  const fin = await request(app).patch(`/api/conversations/${conv.id}`).set(auth(agentToken)).send({ status: "FINALIZADO" });
+  assert.equal(fin.status, 200);
+  assert.equal(fin.body.sector.name, "Geral");
+  assert.equal(fin.body.assignedAgent, null);
+
+  const depois = (await request(app).get("/api/conversations").set(auth(agentToken))).body.map((c) => c.id);
+  assert.ok(!depois.includes(conv.id), "finalizada volta para o Geral e sai do atendente");
+
+  const admin = (await request(app).get("/api/conversations").set(auth(adminToken))).body.find((c) => c.id === conv.id);
+  assert.equal(admin.sector.name, "Geral");
+  assert.equal(admin.status, "FINALIZADO");
+});

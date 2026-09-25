@@ -7,6 +7,7 @@ import { env } from "../config/env.js";
 import { whatsappProvider } from "../services/whatsapp/index.js";
 import { phoneKey, formatWaId } from "../utils/phone.js";
 import { UPLOAD_DIR_PATH } from "../middleware/upload.js";
+import { getEntrySectorId } from "../services/entrySector.js";
 
 // Eventos que hoje só reconhecemos e confirmamos (200 OK), sem processar —
 // coexistência (histórico/contatos do celular) e status de conta ficam
@@ -96,7 +97,8 @@ async function recordMessage(entry) {
   });
   if (!conversation) {
     conversation = await prisma.conversation.create({
-      data: { contactId: contact.id, priority: "NORMAL", status: "EM_ATENDIMENTO" },
+      // Conversa nova (ou o cliente voltou depois de finalizada) chega no setor de entrada.
+      data: { contactId: contact.id, priority: "NORMAL", status: "EM_ATENDIMENTO", sectorId: await getEntrySectorId() },
     });
   }
 

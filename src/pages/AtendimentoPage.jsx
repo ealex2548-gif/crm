@@ -66,7 +66,7 @@ if(!active)return <div className="workspace"><section className="list-panel"><di
 const close=()=>setModal(null);
 return <>
 <div className={"workspace "+(detailsOpen?"details-open":"details-closed")}>
-<ConversationListPanel filtered={filtered} activeId={activeId} query={query} setQuery={setQuery} mobile={mobile} onSelect={(id)=>{setActiveId(id);setMobile("chat")}}/>
+<ConversationListPanel userId={user?.id} filtered={filtered} activeId={activeId} query={query} setQuery={setQuery} mobile={mobile} onSelect={(id)=>{setActiveId(id);setMobile("chat")}}/>
 <ChatPanel
   active={active}
   mobile={mobile} setMobile={setMobile}
