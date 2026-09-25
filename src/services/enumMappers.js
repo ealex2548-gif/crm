@@ -20,6 +20,7 @@ const CONVERSATION_STATUS_TO_DISPLAY = {
   EM_ATENDIMENTO: "Em atendimento",
   AGUARDANDO_CLIENTE: "Aguardando cliente",
   AGUARDANDO_EQUIPE: "Aguardando equipe",
+  AGUARDANDO_ACEITE: "Aguardando aceite",
   FINALIZADO: "Finalizado",
 };
 const CONVERSATION_STATUS_TO_API = Object.fromEntries(

@@ -2,7 +2,7 @@ import{useEffect,useState}from"react";
 import{apiFetch}from"../../../services/apiClient";
 import{getAgents}from"../../../services/usersService";
 
-const STATUS_OPTIONS=["Em atendimento","Aguardando cliente","Aguardando equipe","Finalizado"];
+const STATUS_OPTIONS=["Em atendimento","Aguardando cliente","Aguardando equipe","Aguardando aceite","Finalizado"];
 const PRIORITY_OPTIONS=["Alta","Normal","Urgente"];
 
 export function ClienteTab({active,onUpdate}){

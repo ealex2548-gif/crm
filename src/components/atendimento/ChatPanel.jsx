@@ -14,7 +14,7 @@ return <section className={"chat-panel "+(mobile==="chat"?"mobile-show":"")}>
 <MessageList messages={messages} searchChat={searchChat} onReply={onReply} onNewTicket={onNewTicket}/>
 {quickOpen&&<QuickRepliesPopover replies={quickReplies} canManage={canManage} onChanged={onQuickChanged} onPick={(q)=>{setDraft(q);setQuickOpen(false)}} onClose={()=>setQuickOpen(false)}/>}
 {/* Sem responsável: fechada até alguém iniciar. Com colega atendendo: atendente só lê (gestão pode intervir). */}
-{!active.assignedAgentId?<AcceptBar active={active} onAccept={onAccept} onTransfer={onTransfer}/>
+{!active.assignedAgentId||(active.status==="Aguardando aceite"&&(active.assignedAgentId===userId||canManage))?<AcceptBar active={active} mine={active.assignedAgentId===userId} onAccept={onAccept} onTransfer={onTransfer}/>
 :active.assignedAgentId!==userId&&!canManage?<AcceptBar active={active} takenBy={active.agent}/>
 :<Composer draft={draft} setDraft={setDraft} onSend={onSend} onSendFile={onSendFile}/>}
 </section>

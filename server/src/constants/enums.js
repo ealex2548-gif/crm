@@ -10,6 +10,7 @@ export const CONVERSATION_STATUSES = [
   "EM_ATENDIMENTO",
   "AGUARDANDO_CLIENTE",
   "AGUARDANDO_EQUIPE",
+  "AGUARDANDO_ACEITE", // transferida para uma pessoa, esperando ela "Iniciar atendimento"
   "FINALIZADO",
 ];
 

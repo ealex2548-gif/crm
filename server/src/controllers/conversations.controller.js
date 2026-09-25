@@ -80,11 +80,23 @@ export async function updateConversation(req, res) {
     return res.status(400).json({ error: "Status inválido" });
   }
 
-  if (!(await findAccessible(req))) return res.status(404).json({ error: "Conversa não encontrada" });
+  const current = await findAccessible(req);
+  if (!current) return res.status(404).json({ error: "Conversa não encontrada" });
 
   // Finalizar devolve a conversa para o setor de entrada, sem responsável.
   const finishing = status === "FINALIZADO";
   const entrySectorId = finishing ? await getEntrySectorId() : null;
+
+  // Transferência (mudou pessoa ou setor): para outra pessoa chega fechada,
+  // "Aguardando aceite", até ela iniciar o atendimento. Transferir uma conversa
+  // finalizada a reabre. Assumir para si mesmo já libera.
+  const transferring = !finishing && (assignedAgentId !== undefined || sectorId !== undefined);
+  let transferStatus;
+  if (transferring && !status) {
+    if (assignedAgentId && assignedAgentId !== req.user.sub) transferStatus = "AGUARDANDO_ACEITE";
+    else if (assignedAgentId === req.user.sub) transferStatus = "EM_ATENDIMENTO";
+    else if (current.status === "FINALIZADO" || current.status === "AGUARDANDO_ACEITE") transferStatus = "EM_ATENDIMENTO";
+  }
 
   const conversation = await prisma.conversation.update({
     where: { id: req.params.id },
@@ -94,6 +106,7 @@ export async function updateConversation(req, res) {
       ...(sectorId !== undefined && { sectorId }),
       ...(assignedAgentId !== undefined && { assignedAgentId }),
       ...(finishing && { sectorId: entrySectorId, assignedAgentId: null }),
+      ...(transferStatus && { status: transferStatus, closedAt: null }),
     },
     include: {
       contact: true,
@@ -167,7 +180,9 @@ export async function listMessages(req, res) {
 // iniciar o atendimento (aceitar). Aceita por outra pessoa, o atendente só lê;
 // Admin/Supervisor podem intervir. Nota interna é sempre liberada.
 function replyBlockedReason(conversation, user) {
-  if (!conversation.assignedAgentId) return "Inicie o atendimento para responder esta conversa";
+  if (!conversation.assignedAgentId || conversation.status === "AGUARDANDO_ACEITE") {
+    return "Inicie o atendimento para responder esta conversa";
+  }
   if (conversation.assignedAgentId !== user.sub && isAgent(user)) {
     return "Esta conversa está em atendimento por outra pessoa";
   }
@@ -187,8 +202,20 @@ export async function acceptConversation(req, res) {
   const conversation = await findAccessible(req, { assignedAgent: true });
   if (!conversation) return res.status(404).json({ error: "Conversa não encontrada" });
 
+  const pending = conversation.status === "AGUARDANDO_ACEITE";
   if (conversation.assignedAgentId && conversation.assignedAgentId !== req.user.sub) {
-    return res.status(409).json({ error: `Esta conversa já foi aceita por ${conversation.assignedAgent?.name ?? "outra pessoa"}` });
+    // Transferida para outra pessoa e ainda não aceita: Admin/Supervisor podem assumir.
+    if (pending && !isAgent(req.user)) {
+      await prisma.conversation.update({ where: { id: conversation.id }, data: { assignedAgentId: req.user.sub, status: "EM_ATENDIMENTO", closedAt: null } });
+      await recordAudit({ userId: req.user.sub, action: "conversation.accepted", entityType: "Conversation", entityId: conversation.id });
+    } else {
+      const verb = pending ? "foi transferida para" : "já foi aceita por";
+      return res.status(409).json({ error: `Esta conversa ${verb} ${conversation.assignedAgent?.name ?? "outra pessoa"}` });
+    }
+  } else if (conversation.assignedAgentId === req.user.sub && pending) {
+    // Transferida para mim: aceitar libera o chat.
+    await prisma.conversation.update({ where: { id: conversation.id }, data: { status: "EM_ATENDIMENTO", closedAt: null } });
+    await recordAudit({ userId: req.user.sub, action: "conversation.accepted", entityType: "Conversation", entityId: conversation.id });
   }
   if (!conversation.assignedAgentId) {
     const { count } = await prisma.conversation.updateMany({

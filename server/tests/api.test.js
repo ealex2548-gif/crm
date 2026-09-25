@@ -576,3 +576,41 @@ test("marcar conversa como lida / não lida pelo menu da lista", async () => {
   assert.equal(await unread(), 1, "não lida volta a mostrar 1");
   assert.equal((await request(app).post(`/api/conversations/${conv.id}/read`).set(auth).send({})).status, 400);
 });
+
+test("transferir para uma pessoa: chega fechada (aguardando aceite) até ela iniciar; finalizada é reaberta", async () => {
+  const auth = (t) => ({ Authorization: `Bearer ${t}` });
+  const agent = await prisma.user.findUnique({ where: { email: "agente@test.com" } });
+  const suporte = await prisma.sector.findFirst({ where: { name: "Suporte" } });
+  const cliente = await prisma.contact.create({ data: { name: "Cliente Transf", phone: "+5592900000111" } });
+  // Conversa já finalizada, no Geral.
+  const conv = await prisma.conversation.create({ data: { contactId: cliente.id, status: "FINALIZADO" } });
+
+  // Admin transfere para o atendente (e o setor dele).
+  const t = await request(app).patch(`/api/conversations/${conv.id}`).set(auth(adminToken)).send({ assignedAgentId: agent.id, sectorId: suporte.id });
+  assert.equal(t.status, 200);
+  assert.equal(t.body.status, "AGUARDANDO_ACEITE", "reabre e fica aguardando o aceite dele");
+
+  // Aparece na lista dele, mas responder é bloqueado até iniciar.
+  const lista = (await request(app).get("/api/conversations").set(auth(agentToken))).body.map((c) => c.id);
+  assert.ok(lista.includes(conv.id));
+  assert.equal((await request(app).post(`/api/conversations/${conv.id}/messages`).set(auth(agentToken)).send({ body: "oi" })).status, 409);
+
+  // Colega do setor não pode aceitar no lugar dele.
+  const agent2Token = (await request(app).post("/api/auth/login").send({ email: "agente2@test.com", password: "senha123" })).body.token;
+  const colega = await request(app).post(`/api/conversations/${conv.id}/accept`).set(auth(agent2Token));
+  assert.equal(colega.status, 409);
+  assert.match(colega.body.error, /transferida para/);
+
+  // Ele inicia o atendimento e o chat libera.
+  const aceite = await request(app).post(`/api/conversations/${conv.id}/accept`).set(auth(agentToken));
+  assert.equal(aceite.status, 200);
+  assert.equal(aceite.body.status, "EM_ATENDIMENTO");
+  assert.equal((await request(app).post(`/api/conversations/${conv.id}/messages`).set(auth(agentToken)).send({ body: "Olá!" })).status, 201);
+
+  // Admin pode assumir uma que ainda aguarda aceite de outra pessoa.
+  const conv2 = await prisma.conversation.create({ data: { contactId: cliente.id, status: "EM_ATENDIMENTO" } });
+  await request(app).patch(`/api/conversations/${conv2.id}`).set(auth(adminToken)).send({ assignedAgentId: agent.id });
+  const assume = await request(app).post(`/api/conversations/${conv2.id}/accept`).set(auth(adminToken));
+  assert.equal(assume.status, 200);
+  assert.equal(assume.body.assignedAgent.name, "Teste Admin");
+});
