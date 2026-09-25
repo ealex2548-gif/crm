@@ -2,7 +2,7 @@
 import{useState}from"react";
 import{createRoot}from"react-dom/client";
 import{
-MessageCircle,KanbanSquare,BookOpen,BarChart3,Settings,Columns3,LayoutDashboard,Webhook,Ticket,LogOut,ShieldCheck
+Menu,MessageCircle,KanbanSquare,BookOpen,BarChart3,Settings,Columns3,LayoutDashboard,Webhook,Ticket,LogOut,ShieldCheck
 }from"lucide-react";
 import"./styles.css";
 import{FEATURES,VERSION}from"./config/features";
@@ -31,6 +31,9 @@ return <App user={user} onLogout={logout}/>;
 function App({user,onLogout}){
 const[page,setPage]=useState("atendimento");
 const[profileOpen,setProfileOpen]=useState(false);
+const[moreOpen,setMoreOpen]=useState(false);
+// Celular = versão enxuta para a recepção: só Conversas no menu inferior; o resto em "Mais".
+const MOBILE_PRIMARY=["atendimento"];
 const{tickets,createTicket,updateTicketStatus,loading:ticketsLoading}=useTickets();
 const unreadTotal=useUnreadTotal();
 const canSeeAdmin=user.role==="ADMIN"||user.role==="SUPERVISOR";
@@ -68,6 +71,18 @@ return <div className="shell">
 {page==="whatsapp"&&FEATURES.whatsapp&&canSeeManagement&&<WhatsAppPage/>}
 {page==="admin"&&canSeeAdmin&&<AdminPage user={user}/>}
 </main>
+
+{/* Celular: menu inferior (como o WhatsApp) com os principais + "Mais". Some
+    dentro de uma conversa (ver .workspace.in-chat no CSS). */}
+<nav className="bottom-nav">
+{sidebar.filter(([k])=>MOBILE_PRIMARY.includes(k)).map(([k,label,I])=><button className={page===k?"active":""} onClick={()=>setPage(k)} key={k}><I/><small>{label}</small>{k==="atendimento"&&unreadTotal>0&&<em>{unreadTotal>99?"99+":unreadTotal}</em>}</button>)}
+<button className={moreOpen?"active":""} onClick={()=>setMoreOpen(true)}><Menu/><small>Mais</small></button>
+</nav>
+{moreOpen&&<div className="modal-backdrop more-backdrop" onMouseDown={e=>e.target===e.currentTarget&&setMoreOpen(false)}><div className="more-sheet">
+{sidebar.filter(([k])=>!MOBILE_PRIMARY.includes(k)).map(([k,label,I])=><button key={k} className={page===k?"active":""} onClick={()=>{setPage(k);setMoreOpen(false)}}><I/>{label}</button>)}
+<button onClick={()=>{setProfileOpen(true);setMoreOpen(false)}}><Settings/>Configurações</button>
+<button onClick={onLogout}><LogOut/>Sair ({user.name})</button>
+</div></div>}
 
 <div className="version">V{VERSION}</div>
 {profileOpen&&<ProfileModal user={user} onClose={()=>setProfileOpen(false)}/>}

@@ -75,7 +75,7 @@ if(loading)return <div className="workspace"><section className="list-panel"><di
 
 const close=()=>setModal(null);
 return <>
-<div className={"workspace "+(active&&detailsOpen?"details-open":"details-closed")}>
+<div className={"workspace "+(active&&detailsOpen?"details-open":"details-closed")+(mobile!=="list"?" in-chat":"")}>
 <ConversationListPanel userId={user?.id} onMarkRead={(id,read)=>setConversationRead(id,read).catch(e=>window.alert(e.message))} filtered={filtered} activeId={activeId} query={query} setQuery={setQuery} mobile={mobile} onSelect={(id)=>{setActiveId(id);setMobile("chat")}}/>
 {!active?<section className="chat-panel chat-empty"><div><MessageCircle/><h2>Selecione uma conversa</h2><p>Clique em uma conversa da lista para ver as mensagens.</p></div></section>:<>
 <ChatPanel
