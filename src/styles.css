@@ -133,3 +133,9 @@ audio.bubble-media{min-width:260px;margin:0 0 4px}
 .sticker-img{display:block;width:150px;height:150px;object-fit:contain}
 .bubble.sticker .only-meta{height:auto;display:flex;justify-content:flex-end}
 .bubble.sticker .meta{position:static;margin-top:2px;background:rgba(11,20,26,.35);color:#fff;border-radius:10px;padding:1px 6px}.bubble.sticker .ticks{color:#fff}.bubble.sticker .ticks.read{color:#9de1fe}
+/* Nenhuma conversa aberta (como a tela inicial do WhatsApp Web) */
+.chat-empty{display:grid;place-items:center;text-align:center;background:#f0f2f5;border-bottom:6px solid #25d366}
+.chat-empty svg{width:56px;height:56px;color:#8696a0}
+.chat-empty h2{margin:14px 0 6px;font-weight:300;font-size:26px;color:#41525d}
+.chat-empty p{margin:0;color:#667781;font-size:14px}
+@media(max-width:900px){.chat-empty{display:none}}

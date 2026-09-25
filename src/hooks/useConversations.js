@@ -11,7 +11,6 @@ export function useConversations() {
   useEffect(() => {
     getConversations().then((list) => {
       setContacts(list);
-      setActiveId((current) => current ?? list[0]?.id ?? null);
       setLoading(false);
     });
 
@@ -25,7 +24,8 @@ export function useConversations() {
     };
   }, []);
 
-  const active = contacts.find((c) => c.id === activeId) ?? contacts[0] ?? null;
+  // Nenhuma conversa abre sozinha (como no WhatsApp Web): só ao clicar na lista.
+  const active = contacts.find((c) => c.id === activeId) ?? null;
   const filtered = useMemo(
     () =>
       contacts.filter(

@@ -1,4 +1,5 @@
 import{useState,useEffect,useCallback}from"react";
+import{MessageCircle}from"lucide-react";
 import{useConversations}from"../hooks/useConversations";
 import{useChatMessages}from"../hooks/useChatMessages";
 import{getQuickReplies}from"../services/quickRepliesService";
@@ -61,12 +62,12 @@ const updateActiveConversation=(patch)=>activeId&&updateConversation(activeId,pa
 const sendFile=(file)=>activeId&&sendMedia(activeId,file).catch(e=>window.alert(e.message));
 
 if(loading)return <div className="workspace"><section className="list-panel"><div className="list-head"><h1>Carregando...</h1></div></section></div>;
-if(!active)return <div className="workspace"><section className="list-panel"><div className="list-head"><h1>Nenhuma conversa</h1></div></section></div>;
 
 const close=()=>setModal(null);
 return <>
-<div className={"workspace "+(detailsOpen?"details-open":"details-closed")}>
+<div className={"workspace "+(active&&detailsOpen?"details-open":"details-closed")}>
 <ConversationListPanel userId={user?.id} onMarkRead={(id,read)=>setConversationRead(id,read).catch(e=>window.alert(e.message))} filtered={filtered} activeId={activeId} query={query} setQuery={setQuery} mobile={mobile} onSelect={(id)=>{setActiveId(id);setMobile("chat")}}/>
+{!active?<section className="chat-panel chat-empty"><div><MessageCircle/><h2>Selecione uma conversa</h2><p>Clique em uma conversa da lista para ver as mensagens.</p></div></section>:<>
 <ChatPanel
   userId={user?.id}
   onAccept={()=>acceptConversation(activeId)}
@@ -89,10 +90,11 @@ return <>
   onFinish={()=>setModal("finish")}
 />
 <ClientDetailsPanel active={active} mobile={mobile} setMobile={setMobile} tab={tab} setTab={setTab} setPage={setPage} ticketsPageTarget={ticketsPageTarget} onUpdate={updateActiveConversation} onClose={()=>setDetailsOpen(false)}/>
+</>}
 </div>
-{modal==="note"&&<NoteModal onSave={(text)=>addNote(activeId,text)} onClose={close}/>}
-{modal==="transfer"&&<TransferModal active={active} onSave={(patch)=>updateConversation(activeId,patch)} onClose={close}/>}
-{modal==="ticket"&&<NewTicketModal active={active} defaultTitle={ticketTitle} onSave={saveTicket} onClose={close}/>}
-{modal==="finish"&&<FinishServiceModal onConfirm={finish} onClose={close}/>}
+{active&&modal==="note"&&<NoteModal onSave={(text)=>addNote(activeId,text)} onClose={close}/>}
+{active&&modal==="transfer"&&<TransferModal active={active} onSave={(patch)=>updateConversation(activeId,patch)} onClose={close}/>}
+{active&&modal==="ticket"&&<NewTicketModal active={active} defaultTitle={ticketTitle} onSave={saveTicket} onClose={close}/>}
+{active&&modal==="finish"&&<FinishServiceModal onConfirm={finish} onClose={close}/>}
 </>
 }
