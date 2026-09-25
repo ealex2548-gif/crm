@@ -127,3 +127,9 @@ audio.bubble-media{min-width:260px;margin:0 0 4px}
 .conv-menu-btn{margin-left:4px;width:22px;height:22px;border:0;background:transparent;color:#8696a0;display:none;place-items:center;cursor:pointer;flex:0 0 auto}.conv-menu-btn svg{width:18px}
 .conversation:hover .conv-menu-btn{display:grid}
 .conv-menu{position:absolute;right:12px;top:52px;z-index:5;background:#fff;border-radius:6px;box-shadow:0 2px 12px rgba(11,20,26,.2);padding:6px 0;min-width:180px}.conv-menu button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:9px 16px;font:inherit;font-size:14px;color:#3b4a54;cursor:pointer}.conv-menu button:hover{background:#f5f6f6}
+/* Figurinha: pequena e sem balão, como no WhatsApp (horário num selinho embaixo) */
+.bubble.sticker{background:transparent;box-shadow:none;padding:0;min-width:0}
+.bubble.sticker::before{display:none}
+.sticker-img{display:block;width:150px;height:150px;object-fit:contain}
+.bubble.sticker .only-meta{height:auto;display:flex;justify-content:flex-end}
+.bubble.sticker .meta{position:static;margin-top:2px;background:rgba(11,20,26,.35);color:#fff;border-radius:10px;padding:1px 6px}.bubble.sticker .ticks{color:#fff}.bubble.sticker .ticks.read{color:#9de1fe}

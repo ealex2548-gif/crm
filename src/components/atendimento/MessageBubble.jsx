@@ -25,6 +25,9 @@ export function MessageBubble({m,first,onReply,onNewTicket}){
 const[menu,setMenu]=useState(false);
 const isImage=m.mediaUrl&&/\.(png|jpe?g|gif|webp)$/i.test(m.mediaUrl);
 const isAudio=m.mediaUrl&&/\.(ogg|mp3|m4a|aac|amr|wav)$/i.test(m.mediaUrl);
+// Figurinha chega como imagem com o rótulo "Figurinha" (ver webhook): no WhatsApp
+// ela é pequena e sem balão em volta.
+const isSticker=isImage&&m.text==="Figurinha";
 const isVideo=m.mediaUrl&&/\.(mp4|3gp)$/i.test(m.mediaUrl);
 // Legenda da mídia (o texto padrão "📷 Imagem" etc. só serve para a prévia da lista).
 const caption=m.mediaUrl?(m.text&&!MEDIA_LABELS.includes(m.text)?m.text:null):m.text;
@@ -33,9 +36,9 @@ const meta=<span className="meta">{m.time}<Ticks m={m}/></span>;
 const act=(fn)=>{setMenu(false);fn()};
 
 return <div className={"bubble-wrap "+m.side+(first?" first":"")} onMouseLeave={()=>setMenu(false)}>
-<div className={"bubble "+m.side+(first?" tail":"")+(isAudio?" has-audio":"")}>
+<div className={"bubble "+m.side+(first?" tail":"")+(isAudio?" has-audio":"")+(isSticker?" sticker":"")}>
 {m.side==="note"&&<b className="note-title">📝 Nota interna</b>}
-{isImage&&<img src={m.mediaUrl} alt={m.text||"imagem"} className="bubble-media"/>}
+{isImage&&<img src={m.mediaUrl} alt={m.text||"imagem"} className={isSticker?"sticker-img":"bubble-media"}/>}
 {isAudio&&<AudioPlayer src={m.mediaUrl} meta={caption?null:meta}/>}
 {isVideo&&<video src={m.mediaUrl} controls className="bubble-media"/>}
 {m.mediaUrl&&!isImage&&!isAudio&&!isVideo&&<a href={m.mediaUrl} target="_blank" rel="noreferrer" className="bubble-file"><FileText/>{m.text||"Arquivo"}</a>}
