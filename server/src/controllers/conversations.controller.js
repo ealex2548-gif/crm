@@ -112,6 +112,9 @@ export async function updateConversation(req, res) {
   });
 
   const serialized = serializeConversation(conversation);
+  // Aviso geral (só o id): quem recebeu a conversa por transferência não está na
+  // sala dela ainda — cada tela recarrega a lista pela API, que filtra o acesso.
+  getIO()?.emit("conversation:updated", { id: conversation.id });
   getIO()?.to(`conversation:${conversation.id}`).emit("conversation:updated", serialized);
   res.json(serialized);
 }

@@ -7,6 +7,7 @@ MessageCircle,KanbanSquare,BookOpen,BarChart3,Settings,Columns3,LayoutDashboard,
 import"./styles.css";
 import{FEATURES,VERSION}from"./config/features";
 import{useTickets}from"./hooks/useTickets";
+import{useUnreadTotal}from"./hooks/useUnreadTotal";
 import{AuthProvider,useAuth}from"./contexts/AuthContext";
 import{LoginPage}from"./pages/LoginPage";
 import{AtendimentoPage}from"./pages/AtendimentoPage";
@@ -31,6 +32,7 @@ function App({user,onLogout}){
 const[page,setPage]=useState("atendimento");
 const[profileOpen,setProfileOpen]=useState(false);
 const{tickets,createTicket,updateTicketStatus,loading:ticketsLoading}=useTickets();
+const unreadTotal=useUnreadTotal();
 const canSeeAdmin=user.role==="ADMIN"||user.role==="SUPERVISOR";
 // Atendente só atende: fica com Atendimento, Filas, Kanban e Base.
 // Gestão de tickets em tabela, métricas e configuração ficam pra
@@ -51,7 +53,7 @@ const sidebar=[
 return <div className="shell">
 <aside className="sidebar">
 <div className="logo"><MessageCircle/></div>
-<nav>{sidebar.map(([k,label,I])=><button className={page===k?"active":""} onClick={()=>setPage(k)} key={k}><I/><small>{label}</small>{k==="atendimento"&&<em>12</em>}</button>)}</nav>
+<nav>{sidebar.map(([k,label,I])=><button className={page===k?"active":""} onClick={()=>setPage(k)} key={k}><I/><small>{label}</small>{k==="atendimento"&&unreadTotal>0&&<em>{unreadTotal>99?"99+":unreadTotal}</em>}</button>)}</nav>
 <div className="side-bottom"><button title={user.name} onClick={()=>setProfileOpen(true)}><Settings/><small>Config</small></button><button onClick={onLogout} title={`Sair (${user.name})`}><LogOut/><small>Sair</small></button></div>
 </aside>
 
