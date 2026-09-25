@@ -28,8 +28,10 @@ const[agents,setAgents]=useState([]),[sectors,setSectors]=useState([]);
 const[agentId,setAgentId]=useState(active.assignedAgentId??""),[sectorId,setSectorId]=useState(active.sectorId??"");
 const[saving,submit]=useSubmit(onSave,onClose);
 useEffect(()=>{getAgents().then(setAgents);apiFetch("/api/sectors").then(setSectors)},[]);
+// Escolher o atendente já seleciona o setor em que ele está cadastrado (dá para trocar).
+const pickAgent=(id)=>{setAgentId(id);const agent=agents.find(a=>a.id===id);if(agent?.sectorId)setSectorId(agent.sectorId)};
 return <Modal icon={ArrowLeftRight} title="Transferir atendimento" subtitle={`Conversa com ${active.name}`} onClose={onClose}>
-<label>Atendente<select value={agentId} onChange={e=>setAgentId(e.target.value)}><option value="">Sem responsável</option>{agents.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
+<label>Atendente<select value={agentId} onChange={e=>pickAgent(e.target.value)}><option value="">Sem responsável</option>{agents.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
 <label>Setor / fila<select value={sectorId} onChange={e=>setSectorId(e.target.value)}><option value="">Sem setor</option>{sectors.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
 <div className="modal-actions"><button onClick={onClose}>Cancelar</button><button className="confirm" disabled={saving} onClick={()=>submit({assignedAgentId:agentId||null,sectorId:sectorId||null})}>{saving?"Transferindo...":"Transferir"}</button></div>
 </Modal>

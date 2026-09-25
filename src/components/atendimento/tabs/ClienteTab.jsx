@@ -16,7 +16,8 @@ apiFetch("/api/sectors").then(setSectors);
 
 const handleAgentChange=(e)=>{
 const agent=agents.find(a=>a.name===e.target.value);
-onUpdate?.({assignedAgentId:agent?.id ?? null});
+// Como na janela Transferir: o setor acompanha o do atendente escolhido.
+onUpdate?.({assignedAgentId:agent?.id ?? null,...(agent?.sectorId&&{sectorId:agent.sectorId})});
 };
 const handleSectorChange=(e)=>{
 const sector=sectors.find(s=>s.name===e.target.value);
