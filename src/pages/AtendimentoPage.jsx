@@ -17,7 +17,8 @@ const{messages,sendMessage,addNote,sendMedia}=useChatMessages(activeId);
 const canManage=user?.role==="ADMIN"||user?.role==="SUPERVISOR";
 const[quickReplies,setQuickReplies]=useState([]);
 const[draft,setDraft]=useState("");
-const[detailsOpen,setDetailsOpen]=useState(true),[mobile,setMobile]=useState("list"),[tab,setTab]=useState("cliente");
+// Em telas menores o painel do cliente fica por cima da conversa — começa fechado.
+const[detailsOpen,setDetailsOpen]=useState(()=>window.innerWidth>1380),[mobile,setMobile]=useState("list"),[tab,setTab]=useState("cliente");
 const[quickOpen,setQuickOpen]=useState(false),[searchChat,setSearchChat]=useState("");
 const[modal,setModal]=useState(null); // "note" | "transfer" | "ticket" | "finish"
 const[ticketTitle,setTicketTitle]=useState("");
@@ -85,7 +86,7 @@ return <>
   onNewTicket={(text)=>openTicketModal((text??"").slice(0,80))}
   onFinish={()=>setModal("finish")}
 />
-<ClientDetailsPanel active={active} mobile={mobile} setMobile={setMobile} tab={tab} setTab={setTab} setPage={setPage} ticketsPageTarget={ticketsPageTarget} onUpdate={updateActiveConversation}/>
+<ClientDetailsPanel active={active} mobile={mobile} setMobile={setMobile} tab={tab} setTab={setTab} setPage={setPage} ticketsPageTarget={ticketsPageTarget} onUpdate={updateActiveConversation} onClose={()=>setDetailsOpen(false)}/>
 </div>
 {modal==="note"&&<NoteModal onSave={(text)=>addNote(activeId,text)} onClose={close}/>}
 {modal==="transfer"&&<TransferModal active={active} onSave={(patch)=>updateConversation(activeId,patch)} onClose={close}/>}
