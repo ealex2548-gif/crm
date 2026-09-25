@@ -133,16 +133,20 @@ async function main() {
     }
   }
 
-  console.log("Seeding respostas rápidas...");
-  for (const [category, replies] of Object.entries(mockQuickReplies)) {
-    for (const body of replies) {
-      await prisma.quickReply.create({ data: { category, body } });
+  // Respostas rápidas e artigos de exemplo também só com SEED_DEMO=1 — em
+  // produção a equipe cadastra os seus pelo próprio CRM.
+  if (process.env.SEED_DEMO === "1") {
+    console.log("Seeding respostas rápidas...");
+    for (const [category, replies] of Object.entries(mockQuickReplies)) {
+      for (const body of replies) {
+        await prisma.quickReply.create({ data: { category, body } });
+      }
     }
-  }
 
-  console.log("Seeding base de conhecimento...");
-  for (const [category, title, body] of mockKnowledgeBase) {
-    await prisma.knowledgeArticle.create({ data: { category, title, body } });
+    console.log("Seeding base de conhecimento...");
+    for (const [category, title, body] of mockKnowledgeBase) {
+      await prisma.knowledgeArticle.create({ data: { category, title, body } });
+    }
   }
 
   console.log("Seed concluído. Login padrão: admin@seucrm.com / mudar123");

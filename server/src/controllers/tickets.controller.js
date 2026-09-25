@@ -4,7 +4,10 @@ import { PRIORITIES, TICKET_STATUSES } from "../constants/enums.js";
 import { recordAudit } from "../services/auditLog.js";
 
 export async function listTickets(req, res) {
+  // ?conversationId=... → só os tickets daquela conversa (botão do Atendimento).
+  const { conversationId } = req.query;
   const tickets = await prisma.ticket.findMany({
+    where: conversationId ? { conversationId: String(conversationId) } : undefined,
     include: { contact: true, owner: true },
     orderBy: { createdAt: "desc" },
   });

@@ -44,3 +44,8 @@ export async function updateTicketStatus(ticketId, status) {
   });
   return mapTicket(ticket);
 }
+
+export async function getConversationTickets(conversationId) {
+  const tickets = await apiFetch(`/api/tickets?conversationId=${encodeURIComponent(conversationId)}`);
+  return tickets.map(mapTicket);
+}

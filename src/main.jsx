@@ -62,7 +62,7 @@ return <div className="shell">
 {page==="tickets"&&FEATURES.tickets&&canSeeManagement&&<TicketsPage tickets={tickets} createTicket={createTicket} updateTicketStatus={updateTicketStatus}/>}
 {page==="dashboard"&&FEATURES.dashboard&&canSeeManagement&&<DashboardPage/>}
 {page==="relatorios"&&FEATURES.dashboard&&canSeeManagement&&<ReportsPage/>}
-{page==="base"&&<KnowledgePage/>}
+{page==="base"&&<KnowledgePage user={user}/>}
 {page==="whatsapp"&&FEATURES.whatsapp&&canSeeManagement&&<WhatsAppPage/>}
 {page==="admin"&&canSeeAdmin&&<AdminPage user={user}/>}
 </main>

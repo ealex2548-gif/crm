@@ -1,6 +1,7 @@
 import{useState}from"react";
 import{FEATURES}from"../../config/features";
 import{ChevronDown,FileText}from"lucide-react";
+import{AudioPlayer}from"./AudioPlayer";
 
 const MEDIA_LABELS=["📷 Imagem","🎬 Vídeo","🎤 Áudio","📄 Documento","Figurinha"];
 
@@ -35,7 +36,7 @@ return <div className={"bubble-wrap "+m.side+(first?" first":"")} onMouseLeave={
 <div className={"bubble "+m.side+(first?" tail":"")}>
 {m.side==="note"&&<b className="note-title">📝 Nota interna</b>}
 {isImage&&<img src={m.mediaUrl} alt={m.text||"imagem"} className="bubble-media"/>}
-{isAudio&&<audio src={m.mediaUrl} controls className="bubble-media"/>}
+{isAudio&&<AudioPlayer src={m.mediaUrl}/>}
 {isVideo&&<video src={m.mediaUrl} controls className="bubble-media"/>}
 {m.mediaUrl&&!isImage&&!isAudio&&!isVideo&&<a href={m.mediaUrl} target="_blank" rel="noreferrer" className="bubble-file"><FileText/>{m.text||"Arquivo"}</a>}
 {caption?<div className="bubble-text"><Linkify text={caption}/><span className="meta-spacer"/>{meta}</div>:<div className="bubble-text only-meta">{meta}</div>}

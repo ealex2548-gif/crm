@@ -13,6 +13,11 @@ export function errorHandler(err, req, res, next) {
     return res.status(400).json({ error: err.message });
   }
 
+  // Prisma: registro não existe (ex.: editar algo que outra pessoa já apagou).
+  if (err.code === "P2025") {
+    return res.status(404).json({ error: "Registro não encontrado" });
+  }
+
   const status = err.status ?? 500;
   res.status(status).json({ error: err.publicMessage ?? "Erro interno do servidor" });
 }

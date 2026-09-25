@@ -381,3 +381,55 @@ test("dashboard e relatórios: agente comum é bloqueado (403), admin recebe dad
   assert.ok(Array.isArray(rep.body.attendancesByAgent));
   assert.ok(Array.isArray(rep.body.topClients));
 });
+
+test("respostas rápidas: todos leem, só supervisor/admin cadastram, editam e apagam", async () => {
+  const auth = (t) => ({ Authorization: `Bearer ${t}` });
+
+  const forbidden = await request(app).post("/api/quick-replies").set(auth(agentToken)).send({ category: "PDV", body: "Oi" });
+  assert.equal(forbidden.status, 403);
+
+  const invalid = await request(app).post("/api/quick-replies").set(auth(supervisorToken)).send({ category: "PDV", body: "  " });
+  assert.equal(invalid.status, 400);
+
+  const created = await request(app).post("/api/quick-replies").set(auth(supervisorToken)).send({ category: "PDV", body: "Vou verificar" });
+  assert.equal(created.status, 201);
+
+  const list = await request(app).get("/api/quick-replies").set(auth(agentToken));
+  assert.ok(list.body.some((r) => r.id === created.body.id));
+
+  const updated = await request(app).put(`/api/quick-replies/${created.body.id}`).set(auth(adminToken)).send({ category: "Fiscal", body: "Texto novo" });
+  assert.equal(updated.body.category, "Fiscal");
+
+  assert.equal((await request(app).delete(`/api/quick-replies/${created.body.id}`).set(auth(adminToken))).status, 204);
+  assert.equal((await request(app).delete(`/api/quick-replies/${created.body.id}`).set(auth(adminToken))).status, 404);
+});
+
+test("base de conhecimento: agente só lê, supervisor cadastra/edita/apaga", async () => {
+  const auth = (t) => ({ Authorization: `Bearer ${t}` });
+  const article = { category: "PDV", title: "Serviço parado", body: "Reiniciar o serviço." };
+
+  assert.equal((await request(app).post("/api/knowledge-articles").set(auth(agentToken)).send(article)).status, 403);
+
+  const created = await request(app).post("/api/knowledge-articles").set(auth(supervisorToken)).send(article);
+  assert.equal(created.status, 201);
+
+  const updated = await request(app).put(`/api/knowledge-articles/${created.body.id}`).set(auth(supervisorToken)).send({ ...article, title: "Serviço do PDV parado" });
+  assert.equal(updated.body.title, "Serviço do PDV parado");
+
+  assert.equal((await request(app).delete(`/api/knowledge-articles/${created.body.id}`).set(auth(supervisorToken))).status, 204);
+});
+
+test("tickets podem ser filtrados pela conversa", async () => {
+  const auth = { Authorization: `Bearer ${agentToken}` };
+  const conversations = await request(app).get("/api/conversations").set(auth);
+  const [conv] = conversations.body;
+  await request(app).post("/api/tickets").set(auth).send({ contactId: conv.contact.id, conversationId: conv.id, title: "Ticket da conversa" });
+
+  const filtered = await request(app).get(`/api/tickets?conversationId=${conv.id}`).set(auth);
+  assert.equal(filtered.status, 200);
+  assert.ok(filtered.body.length >= 1);
+  assert.ok(filtered.body.every((t) => t.conversationId === conv.id));
+
+  const none = await request(app).get("/api/tickets?conversationId=nao-existe").set(auth);
+  assert.deepEqual(none.body, []);
+});
