@@ -17,8 +17,8 @@ const{messages,sendMessage,addNote,sendMedia}=useChatMessages(activeId);
 const canManage=user?.role==="ADMIN"||user?.role==="SUPERVISOR";
 const[quickReplies,setQuickReplies]=useState([]);
 const[draft,setDraft]=useState("");
-// Em telas menores o painel do cliente fica por cima da conversa — começa fechado.
-const[detailsOpen,setDetailsOpen]=useState(()=>window.innerWidth>1380),[mobile,setMobile]=useState("list"),[tab,setTab]=useState("cliente");
+// Em telas estreitas (até 1150px) o painel do cliente fica por cima da conversa — começa fechado.
+const[detailsOpen,setDetailsOpen]=useState(()=>window.innerWidth>1150),[mobile,setMobile]=useState("list"),[tab,setTab]=useState("cliente");
 const[quickOpen,setQuickOpen]=useState(false),[searchChat,setSearchChat]=useState("");
 const[modal,setModal]=useState(null); // "note" | "transfer" | "ticket" | "finish"
 const[ticketTitle,setTicketTitle]=useState("");
