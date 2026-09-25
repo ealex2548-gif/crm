@@ -7,7 +7,8 @@ const fmt=(s)=>!isFinite(s)?"0:00":`${Math.floor(s/60)}:${String(Math.floor(s%60
 // Player no estilo WhatsApp. O áudio toca por um objeto Audio fora da página
 // (sem <audio> no DOM) — assim extensões de "acelerar vídeo" do navegador não
 // sobrepõem os controles delas em cima da mensagem.
-export function AudioPlayer({src}){
+// meta: horário + tiques da mensagem, exibidos na linha de baixo (à direita da duração).
+export function AudioPlayer({src,meta}){
 const audioRef=useRef(null);
 const[playing,setPlaying]=useState(false);
 const[time,setTime]=useState(0),[duration,setDuration]=useState(0);
@@ -39,9 +40,9 @@ return <div className="audio-player">
 <button type="button" className="audio-play" onClick={toggle} title={playing?"Pausar":"Ouvir"}>{playing?<Pause/>:<Play/>}</button>
 <div className="audio-track">
 <input type="range" min={0} max={duration||0} step={0.1} value={Math.min(time,duration||0)} onChange={seek} style={{"--pct":`${duration?(time/duration)*100:0}%`}}/>
-<span className="audio-time">{fmt(playing||time?time:duration)}</span>
 </div>
 {/* Como no WhatsApp: parado mostra o microfone; tocando, a velocidade. */}
-{playing||speed!==1?<button type="button" className="audio-speed" onClick={cycleSpeed} title="Velocidade">{String(speed).replace(".",",")}x</button>:<span className="audio-mic"><Mic/></span>}
+<div className="audio-side">{playing||speed!==1?<button type="button" className="audio-speed" onClick={cycleSpeed} title="Velocidade">{String(speed).replace(".",",")}x</button>:<span className="audio-mic"><Mic/></span>}</div>
+<div className="audio-foot"><span className="audio-time">{fmt(playing||time?time:duration)}</span>{meta}</div>
 </div>
 }

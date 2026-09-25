@@ -33,13 +33,13 @@ const meta=<span className="meta">{m.time}<Ticks m={m}/></span>;
 const act=(fn)=>{setMenu(false);fn()};
 
 return <div className={"bubble-wrap "+m.side+(first?" first":"")} onMouseLeave={()=>setMenu(false)}>
-<div className={"bubble "+m.side+(first?" tail":"")+(isAudio?" audio":"")}>
+<div className={"bubble "+m.side+(first?" tail":"")+(isAudio?" has-audio":"")}>
 {m.side==="note"&&<b className="note-title">📝 Nota interna</b>}
 {isImage&&<img src={m.mediaUrl} alt={m.text||"imagem"} className="bubble-media"/>}
-{isAudio&&<AudioPlayer src={m.mediaUrl}/>}
+{isAudio&&<AudioPlayer src={m.mediaUrl} meta={caption?null:meta}/>}
 {isVideo&&<video src={m.mediaUrl} controls className="bubble-media"/>}
 {m.mediaUrl&&!isImage&&!isAudio&&!isVideo&&<a href={m.mediaUrl} target="_blank" rel="noreferrer" className="bubble-file"><FileText/>{m.text||"Arquivo"}</a>}
-{caption?<div className="bubble-text"><Linkify text={caption}/><span className="meta-spacer"/>{meta}</div>:<div className="bubble-text only-meta">{meta}</div>}
+{caption?<div className="bubble-text"><Linkify text={caption}/><span className="meta-spacer"/>{meta}</div>:!isAudio&&<div className="bubble-text only-meta">{meta}</div>}
 {FEATURES.productivity&&m.side!=="note"&&!m.pending&&<button type="button" className="bubble-menu-btn" title="Mais opções" onClick={()=>setMenu(v=>!v)}><ChevronDown/></button>}
 {menu&&<div className="bubble-menu">
 <button type="button" onClick={()=>act(()=>onReply(m.text))}>Responder</button>
