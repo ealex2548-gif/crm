@@ -11,7 +11,7 @@ return <section className={"chat-panel "+(mobile==="chat"?"mobile-show":"")}>
 <ChatHeader active={active} detailsOpen={detailsOpen} setDetailsOpen={setDetailsOpen} setMobile={setMobile} searchChat={searchChat} setSearchChat={setSearchChat}/>
 <ChatStatusBar active={active} onFinish={onFinish}/>
 <ChatToolbar ticket={ticket} onTicket={onTicket} onTransfer={onTransfer} onNote={onNote} setQuickOpen={setQuickOpen} setPage={setPage}/>
-<MessageList messages={messages} searchChat={searchChat} onReply={onReply} onNewTicket={onNewTicket}/>
+<MessageList key={active.id} messages={messages} searchChat={searchChat} onReply={onReply} onNewTicket={onNewTicket}/>
 {quickOpen&&<QuickRepliesPopover replies={quickReplies} canManage={canManage} onChanged={onQuickChanged} onPick={(q)=>{setDraft(q);setQuickOpen(false)}} onClose={()=>setQuickOpen(false)}/>}
 {/* Sem responsável: fechada até alguém iniciar. Com colega atendendo: atendente só lê (gestão pode intervir). */}
 {!active.assignedAgentId||(active.status==="Aguardando aceite"&&(active.assignedAgentId===userId||canManage))?<AcceptBar active={active} mine={active.assignedAgentId===userId} onAccept={onAccept} onTransfer={onTransfer}/>

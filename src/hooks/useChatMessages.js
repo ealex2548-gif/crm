@@ -10,6 +10,8 @@ export function useChatMessages(activeId) {
       setMessages([]);
       return;
     }
+    // Limpa a conversa anterior na hora (senão ela aparece até a nova carregar).
+    setMessages([]);
     getMessages(activeId).then(setMessages);
 
     const socket = getSocket();
