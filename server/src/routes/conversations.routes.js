@@ -9,6 +9,8 @@ import {
   listMessages,
   createMessage,
   uploadMedia,
+  acceptConversation,
+  setConversationRead,
 } from "../controllers/conversations.controller.js";
 
 export const conversationsRouter = Router();
@@ -18,6 +20,8 @@ conversationsRouter.use(requireAuth);
 conversationsRouter.get("/", asyncHandler(listConversations));
 conversationsRouter.get("/:id", asyncHandler(getConversation));
 conversationsRouter.patch("/:id", asyncHandler(updateConversation));
+conversationsRouter.post("/:id/accept", asyncHandler(acceptConversation));
+conversationsRouter.post("/:id/read", asyncHandler(setConversationRead));
 conversationsRouter.get("/:id/messages", asyncHandler(listMessages));
 conversationsRouter.post("/:id/messages", asyncHandler(createMessage));
 conversationsRouter.post("/:id/media", upload.single("file"), asyncHandler(uploadMedia));

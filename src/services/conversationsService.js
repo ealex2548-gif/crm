@@ -56,3 +56,13 @@ export async function updateConversation(id, patch) {
   });
   return mapConversation(conversation);
 }
+
+// "Iniciar atendimento": fica com a conversa (409 se outra pessoa aceitou antes).
+export async function acceptConversation(id) {
+  const conversation = await apiFetch(`/api/conversations/${id}/accept`, { method: "POST" });
+  return mapConversation(conversation);
+}
+
+export async function setConversationRead(id, read) {
+  await apiFetch(`/api/conversations/${id}/read`, { method: "POST", body: JSON.stringify({ read }) });
+}

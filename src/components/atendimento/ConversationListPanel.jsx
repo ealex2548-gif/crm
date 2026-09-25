@@ -11,7 +11,7 @@ const FILTERS=[
 ["finalizadas","Finalizadas",(c)=>c.status==="Finalizado"],
 ];
 
-export function ConversationListPanel({filtered,activeId,query,setQuery,mobile,onSelect,userId}){
+export function ConversationListPanel({filtered,activeId,query,setQuery,mobile,onSelect,userId,onMarkRead}){
 const[filter,setFilter]=useState("todas");
 const test=FILTERS.find(([k])=>k===filter)[2];
 const visible=filtered.filter(c=>test(c,userId));
@@ -22,7 +22,7 @@ return <section className={"list-panel "+(mobile==="list"?"mobile-show":"")}>
 <div className="filters">{FILTERS.map(([k,label])=><span key={k} role="button" className={filter===k?"active":""} onClick={()=>setFilter(k)}>{label}</span>)}</div>
 </div>
 <div className="conversations">
-{visible.map(c=><ConversationItem key={c.id} c={c} active={c.id===activeId} onSelect={()=>onSelect(c.id)}/>)}
+{visible.map(c=><ConversationItem key={c.id} c={c} active={c.id===activeId} onSelect={()=>onSelect(c.id)} onMarkRead={onMarkRead}/>)}
 {visible.length===0&&<p className="empty-hint list-empty">Nenhuma conversa aqui.</p>}
 </div>
 </section>

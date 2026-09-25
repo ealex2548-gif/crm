@@ -119,6 +119,21 @@ test("conversa criada aparece na listagem da API", async () => {
 });
 
 test("enviar mensagem passa pelo provedor mock de whatsapp e persiste", async () => {
+  // Conversa sem responsável fica fechada: responder exige iniciar o atendimento.
+  const blocked = await request(app)
+    .post(`/api/conversations/${conversationId}/messages`)
+    .set("Authorization", `Bearer ${agentToken}`)
+    .send({ body: "Antes de aceitar" });
+  assert.equal(blocked.status, 409);
+  const note = await request(app)
+    .post(`/api/conversations/${conversationId}/messages`)
+    .set("Authorization", `Bearer ${agentToken}`)
+    .send({ body: "Nota antes de aceitar", type: "NOTE" });
+  assert.equal(note.status, 201, "nota interna continua liberada");
+  const accepted = await request(app).post(`/api/conversations/${conversationId}/accept`).set("Authorization", `Bearer ${agentToken}`);
+  assert.equal(accepted.status, 200);
+  assert.equal(accepted.body.assignedAgent.name, "Teste Agente");
+
   const res = await request(app)
     .post(`/api/conversations/${conversationId}/messages`)
     .set("Authorization", `Bearer ${agentToken}`)
@@ -357,6 +372,7 @@ test("SLA: última mensagem do cliente conta o prazo, resposta do agente zera", 
   assert.equal(convBefore.sla.status, "breached");
   assert.ok(convBefore.sla.minutesRemaining < 0);
 
+  await request(app).post(`/api/conversations/${conv.id}/accept`).set("Authorization", `Bearer ${agentToken}`);
   await request(app)
     .post(`/api/conversations/${conv.id}/messages`)
     .set("Authorization", `Bearer ${agentToken}`)
@@ -448,6 +464,7 @@ test("visibilidade: atendente vê só as conversas atribuídas a ele ou do setor
   // De outro setor — atendente do Suporte não vê.
   const deOutroSetor = await prisma.conversation.create({ data: { contactId: pessoal.id, status: "EM_ATENDIMENTO", sectorId: outroSetor.id } });
   // De outro setor mas atribuída a ele — vê.
+  const doSuporte = await prisma.conversation.create({ data: { contactId: pessoal.id, status: "EM_ATENDIMENTO", sectorId: (await prisma.sector.findFirst({ where: { name: "Suporte" } })).id } });
   const atribuida = await prisma.conversation.create({ data: { contactId: pessoal.id, status: "EM_ATENDIMENTO", sectorId: outroSetor.id, assignedAgentId: agent.id } });
 
   const lista = (await request(app).get("/api/conversations").set(auth(agentToken))).body.map((c) => c.id);
@@ -474,7 +491,7 @@ test("visibilidade: atendente vê só as conversas atribuídas a ele ou do setor
   assert.equal(mudou.status, 200);
   const depois = (await request(app).get("/api/conversations").set(auth(agentToken))).body.map((c) => c.id);
   assert.ok(depois.includes(deOutroSetor.id));
-  assert.ok(!depois.includes(conversationId));
+  assert.ok(!depois.includes(doSuporte.id), "conversa do setor antigo, sem ser dele, some");
 
   // Atendente não muda setor de ninguém.
   assert.equal((await request(app).patch(`/api/users/${agent.id}/sector`).set(auth(agentToken)).send({ sectorId: null })).status, 403);
@@ -509,4 +526,53 @@ test("fluxo Geral: finalizar devolve a conversa ao Geral, sem responsável, e o 
   const admin = (await request(app).get("/api/conversations").set(auth(adminToken))).body.find((c) => c.id === conv.id);
   assert.equal(admin.sector.name, "Geral");
   assert.equal(admin.status, "FINALIZADO");
+});
+
+test("iniciar atendimento: só um fica com a conversa; colega do setor só lê; admin pode intervir", async () => {
+  const auth = (t) => ({ Authorization: `Bearer ${t}` });
+  const suporte = await prisma.sector.findFirst({ where: { name: "Suporte" } });
+  const cliente = await prisma.contact.create({ data: { name: "Cliente Aceite", phone: "+5592900000088" } });
+  const conv = await prisma.conversation.create({ data: { contactId: cliente.id, status: "EM_ATENDIMENTO", sectorId: suporte.id } });
+
+  const agent2Token = (await request(app).post("/api/auth/login").send({ email: "agente2@test.com", password: "senha123" })).body.token;
+
+  // Os dois clicam "Iniciar atendimento" ao mesmo tempo: só um consegue.
+  const [a, b] = await Promise.all([
+    request(app).post(`/api/conversations/${conv.id}/accept`).set(auth(agentToken)),
+    request(app).post(`/api/conversations/${conv.id}/accept`).set(auth(agent2Token)),
+  ]);
+  assert.deepEqual([a.status, b.status].sort(), [200, 409]);
+  const loserToken = a.status === 409 ? agentToken : agent2Token;
+  const loser = a.status === 409 ? a : b;
+  assert.match(loser.body.error, /já foi aceita por/);
+
+  // O colega continua vendo (mesmo setor), mas não consegue responder.
+  const leitura = await request(app).get(`/api/conversations/${conv.id}/messages`).set(auth(loserToken));
+  assert.equal(leitura.status, 200);
+  const resposta = await request(app).post(`/api/conversations/${conv.id}/messages`).set(auth(loserToken)).send({ body: "oi" });
+  assert.equal(resposta.status, 409);
+
+  // Admin pode intervir.
+  const admin = await request(app).post(`/api/conversations/${conv.id}/messages`).set(auth(adminToken)).send({ body: "Aqui é o gestor" });
+  assert.equal(admin.status, 201);
+});
+
+test("marcar conversa como lida / não lida pelo menu da lista", async () => {
+  const auth = { Authorization: `Bearer ${adminToken}` };
+  const cliente = await prisma.contact.create({ data: { name: "Cliente Lida", phone: "+5592900000099" } });
+  const conv = await prisma.conversation.create({ data: { contactId: cliente.id, status: "EM_ATENDIMENTO" } });
+  await prisma.message.createMany({
+    data: [
+      { conversationId: conv.id, direction: "IN", body: "oi" },
+      { conversationId: conv.id, direction: "IN", body: "tem alguém?" },
+    ],
+  });
+  const unread = async () => (await request(app).get("/api/conversations").set(auth)).body.find((c) => c.id === conv.id).unreadCount;
+
+  assert.equal(await unread(), 2);
+  assert.equal((await request(app).post(`/api/conversations/${conv.id}/read`).set(auth).send({ read: true })).status, 204);
+  assert.equal(await unread(), 0);
+  assert.equal((await request(app).post(`/api/conversations/${conv.id}/read`).set(auth).send({ read: false })).status, 204);
+  assert.equal(await unread(), 1, "não lida volta a mostrar 1");
+  assert.equal((await request(app).post(`/api/conversations/${conv.id}/read`).set(auth).send({})).status, 400);
 });

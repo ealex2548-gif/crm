@@ -2,7 +2,7 @@ import{useState,useEffect,useCallback}from"react";
 import{useConversations}from"../hooks/useConversations";
 import{useChatMessages}from"../hooks/useChatMessages";
 import{getQuickReplies}from"../services/quickRepliesService";
-import{updateConversation}from"../services/conversationsService";
+import{updateConversation,acceptConversation,setConversationRead}from"../services/conversationsService";
 import{getConversationTickets}from"../services/ticketsService";
 import{getSocket}from"../services/socket";
 import{ConversationListPanel}from"../components/atendimento/ConversationListPanel";
@@ -66,8 +66,10 @@ if(!active)return <div className="workspace"><section className="list-panel"><di
 const close=()=>setModal(null);
 return <>
 <div className={"workspace "+(detailsOpen?"details-open":"details-closed")}>
-<ConversationListPanel userId={user?.id} filtered={filtered} activeId={activeId} query={query} setQuery={setQuery} mobile={mobile} onSelect={(id)=>{setActiveId(id);setMobile("chat")}}/>
+<ConversationListPanel userId={user?.id} onMarkRead={(id,read)=>setConversationRead(id,read).catch(e=>window.alert(e.message))} filtered={filtered} activeId={activeId} query={query} setQuery={setQuery} mobile={mobile} onSelect={(id)=>{setActiveId(id);setMobile("chat")}}/>
 <ChatPanel
+  userId={user?.id}
+  onAccept={()=>acceptConversation(activeId)}
   active={active}
   mobile={mobile} setMobile={setMobile}
   detailsOpen={detailsOpen} setDetailsOpen={setDetailsOpen}

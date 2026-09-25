@@ -5,7 +5,7 @@ import { env } from "../config/env.js";
 import { PRIORITIES, CONVERSATION_STATUSES, MESSAGE_TYPES } from "../constants/enums.js";
 import { recordAudit } from "../services/auditLog.js";
 import { computeSla } from "../constants/sla.js";
-import { conversationScope } from "../services/access.js";
+import { conversationScope, isAgent } from "../services/access.js";
 import { getEntrySectorId } from "../services/entrySector.js";
 
 // Conversa que este usuário pode ver (atendente: só as atribuídas a ele).
@@ -116,6 +116,31 @@ export async function updateConversation(req, res) {
   res.json(serialized);
 }
 
+// Menu da lista (como no WhatsApp): { read: true } zera as não lidas sem abrir a
+// conversa; { read: false } marca a última mensagem do cliente como não lida.
+export async function setConversationRead(req, res) {
+  const { read } = req.body ?? {};
+  if (typeof read !== "boolean") return res.status(400).json({ error: "Informe read (true ou false)" });
+  const conversation = await findAccessible(req);
+  if (!conversation) return res.status(404).json({ error: "Conversa não encontrada" });
+
+  if (read) {
+    await prisma.message.updateMany({
+      where: { conversationId: conversation.id, direction: "IN", readAt: null },
+      data: { readAt: new Date() },
+    });
+  } else {
+    const last = await prisma.message.findFirst({
+      where: { conversationId: conversation.id, direction: "IN" },
+      orderBy: { createdAt: "desc" },
+    });
+    if (last) await prisma.message.update({ where: { id: last.id }, data: { readAt: null } });
+  }
+
+  getIO()?.emit("conversation:updated", { id: conversation.id });
+  res.status(204).end();
+}
+
 export async function listMessages(req, res) {
   const conversation = await findAccessible(req);
   if (!conversation) return res.status(404).json({ error: "Conversa não encontrada" });
@@ -135,6 +160,52 @@ export async function listMessages(req, res) {
   res.json(messages);
 }
 
+// Conversa sem responsável fica "fechada": dá para ler, mas responder só depois de
+// iniciar o atendimento (aceitar). Aceita por outra pessoa, o atendente só lê;
+// Admin/Supervisor podem intervir. Nota interna é sempre liberada.
+function replyBlockedReason(conversation, user) {
+  if (!conversation.assignedAgentId) return "Inicie o atendimento para responder esta conversa";
+  if (conversation.assignedAgentId !== user.sub && isAgent(user)) {
+    return "Esta conversa está em atendimento por outra pessoa";
+  }
+  return null;
+}
+
+const CONVERSATION_INCLUDE = {
+  contact: true,
+  sector: true,
+  assignedAgent: true,
+  messages: { orderBy: { createdAt: "desc" }, take: 1 },
+};
+
+// "Iniciar atendimento": fica com a conversa. Se dois clicarem juntos, só o
+// primeiro consegue (updateMany só acha a conversa enquanto ninguém a pegou).
+export async function acceptConversation(req, res) {
+  const conversation = await findAccessible(req, { assignedAgent: true });
+  if (!conversation) return res.status(404).json({ error: "Conversa não encontrada" });
+
+  if (conversation.assignedAgentId && conversation.assignedAgentId !== req.user.sub) {
+    return res.status(409).json({ error: `Esta conversa já foi aceita por ${conversation.assignedAgent?.name ?? "outra pessoa"}` });
+  }
+  if (!conversation.assignedAgentId) {
+    const { count } = await prisma.conversation.updateMany({
+      where: { id: conversation.id, assignedAgentId: null },
+      data: { assignedAgentId: req.user.sub, status: "EM_ATENDIMENTO", closedAt: null },
+    });
+    if (count === 0) {
+      const taken = await prisma.conversation.findUnique({ where: { id: conversation.id }, include: { assignedAgent: true } });
+      return res.status(409).json({ error: `Esta conversa já foi aceita por ${taken?.assignedAgent?.name ?? "outra pessoa"}` });
+    }
+    await recordAudit({ userId: req.user.sub, action: "conversation.accepted", entityType: "Conversation", entityId: conversation.id });
+  }
+
+  const updated = await prisma.conversation.findUnique({ where: { id: conversation.id }, include: CONVERSATION_INCLUDE });
+  const serialized = serializeConversation(updated);
+  getIO()?.emit("conversation:updated", { id: updated.id });
+  getIO()?.to(`conversation:${updated.id}`).emit("conversation:updated", serialized);
+  res.json(serialized);
+}
+
 export async function createMessage(req, res) {
   const { body, type = "TEXT" } = req.body ?? {};
   if (!body?.trim()) return res.status(400).json({ error: "Mensagem vazia" });
@@ -142,6 +213,8 @@ export async function createMessage(req, res) {
 
   const conversation = await findAccessible(req, { contact: true });
   if (!conversation) return res.status(404).json({ error: "Conversa não encontrada" });
+  const blocked = type === "TEXT" && replyBlockedReason(conversation, req.user);
+  if (blocked) return res.status(409).json({ error: blocked });
 
   let whatsappMessageId;
   if (type === "TEXT") {
@@ -170,6 +243,8 @@ export async function uploadMedia(req, res) {
 
   const conversation = await findAccessible(req, { contact: true });
   if (!conversation) return res.status(404).json({ error: "Conversa não encontrada" });
+  const blocked = replyBlockedReason(conversation, req.user);
+  if (blocked) return res.status(409).json({ error: blocked });
 
   const mediaUrl = `/uploads/${req.file.filename}`;
   const sent = await whatsappProvider.sendMediaMessage(

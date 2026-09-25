@@ -114,3 +114,16 @@ audio.bubble-media{min-width:260px;margin:0 0 4px}
 @media(max-width:900px){.details-close{display:none}}
 .sector-select{border:1px solid var(--line);border-radius:8px;padding:5px 6px;font:inherit;font-size:12px;max-width:100%}
 .filters span{cursor:pointer;user-select:none}.list-empty{padding:0 14px}
+/* "Iniciar atendimento": no lugar da barra de digitar enquanto a conversa está fechada */
+.accept-bar{position:absolute;left:0;right:0;bottom:0;background:#f0f2f5;border-top:1px solid #d9dfe2;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.accept-info{display:flex;align-items:center;gap:7px;color:#54656f;font-size:14px}.accept-info svg{width:16px}
+.accept-actions{display:flex;gap:8px}
+.accept-actions button{display:inline-flex;align-items:center;gap:6px;border:1px solid #d1d7db;background:#fff;border-radius:999px;padding:8px 14px;font:inherit;font-size:13.5px;color:#111b21;cursor:pointer}
+.accept-actions button svg{width:15px}
+.accept-actions .confirm{background:var(--green);border-color:var(--green);color:#fff}.accept-actions .confirm:disabled{opacity:.6}
+.tags i.waiting-tag{background:#fff3c4;color:#8a6d00;font-weight:600}
+/* Menu ⌄ da conversa na lista (Marcar como lida / não lida) */
+.conversation{position:relative;cursor:pointer}
+.conv-menu-btn{margin-left:4px;width:22px;height:22px;border:0;background:transparent;color:#8696a0;display:none;place-items:center;cursor:pointer;flex:0 0 auto}.conv-menu-btn svg{width:18px}
+.conversation:hover .conv-menu-btn{display:grid}
+.conv-menu{position:absolute;right:12px;top:52px;z-index:5;background:#fff;border-radius:6px;box-shadow:0 2px 12px rgba(11,20,26,.2);padding:6px 0;min-width:180px}.conv-menu button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:9px 16px;font:inherit;font-size:14px;color:#3b4a54;cursor:pointer}.conv-menu button:hover{background:#f5f6f6}
