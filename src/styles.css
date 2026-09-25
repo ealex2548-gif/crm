@@ -173,3 +173,22 @@ audio.bubble-media{min-width:260px;margin:0 0 4px}
 .more-sheet{background:#fff;border-radius:16px 16px 0 0;padding:10px 10px calc(10px + var(--safe));display:grid;gap:2px;width:100%}
 .more-sheet button{display:flex;align-items:center;gap:14px;border:0;background:transparent;padding:13px 12px;border-radius:10px;font:inherit;font-size:15px;color:#111b21;text-align:left;cursor:pointer}
 .more-sheet button svg{width:20px;color:#54656f}.more-sheet button.active{background:#e7f8ef;color:var(--green)}
+/* Menu ⋮ do topo da conversa (no celular reúne as ações, como no app do WhatsApp) */
+.chat-head{position:relative}
+.head-menu-backdrop{position:fixed;inset:0;z-index:30}
+.head-menu{position:absolute;top:52px;right:10px;z-index:31;min-width:210px;background:#fff;border-radius:8px;box-shadow:0 4px 18px rgba(11,20,26,.22);padding:8px 0;display:grid}
+.head-menu button{border:0;background:transparent;text-align:left;padding:12px 20px;font:inherit;font-size:15px;color:#111b21;cursor:pointer}.head-menu button:hover{background:#f5f6f6}
+@media(max-width:900px){
+/* Conversa limpa como no app: sem as barras de SLA e de botões (ações no ⋮) */
+.statusbar,.tools{display:none}
+.chat-head{min-height:60px;padding:6px 6px}
+.identity small{color:#667781;font-size:12.5px}
+/* Lista limpa: foto, nome, última mensagem e horário; só as etiquetas da recepção */
+.waitline{display:none}
+.tags{margin-top:3px}.tags i{display:none}.tags i.waiting-tag,.tags i.done-tag{display:inline-block}
+.tags:not(:has(.waiting-tag,.done-tag)){display:none}
+.conversation{padding:11px 14px;border-bottom:0}
+.conversation .avatar{width:52px;height:52px}
+.list-head{border-bottom:0}.title-row h1{color:var(--green);font-size:22px}
+}
+.statusbar,.tools{scrollbar-width:none}.statusbar::-webkit-scrollbar,.tools::-webkit-scrollbar{display:none}

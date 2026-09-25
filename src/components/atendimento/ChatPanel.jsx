@@ -8,7 +8,15 @@ import{AcceptBar}from"./AcceptBar";
 
 export function ChatPanel({userId,onAccept,joined,onJoin,active,mobile,setMobile,detailsOpen,setDetailsOpen,searchChat,setSearchChat,setPage,ticket,onTicket,onTransfer,onNote,quickOpen,setQuickOpen,quickReplies,canManage,onQuickChanged,messages,draft,setDraft,onSend,onSendFile,onReply,onNewTicket,onFinish}){
 return <section className={"chat-panel "+(mobile==="chat"?"mobile-show":"")}>
-<ChatHeader active={active} detailsOpen={detailsOpen} setDetailsOpen={setDetailsOpen} setMobile={setMobile} searchChat={searchChat} setSearchChat={setSearchChat}/>
+<ChatHeader active={active} detailsOpen={detailsOpen} setDetailsOpen={setDetailsOpen} setMobile={setMobile} searchChat={searchChat} setSearchChat={setSearchChat} menu={[
+["Dados do cliente",()=>{setDetailsOpen(true);setMobile("details")}],
+["Transferir",onTransfer],
+["Nota interna",onNote],
+["Respostas rápidas",()=>setQuickOpen(true)],
+[ticket?`Ticket ${ticket.id}`:"Criar ticket",onTicket],
+["Finalizar atendimento",onFinish],
+["Base de conhecimento",()=>setPage("base")],
+]}/>
 <ChatStatusBar active={active} onFinish={onFinish}/>
 <ChatToolbar ticket={ticket} onTicket={onTicket} onTransfer={onTransfer} onNote={onNote} setQuickOpen={setQuickOpen} setPage={setPage}/>
 <MessageList key={active.id} messages={messages} searchChat={searchChat} onReply={onReply} onNewTicket={onNewTicket}/>
