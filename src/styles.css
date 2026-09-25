@@ -112,3 +112,4 @@ audio.bubble-media{min-width:260px;margin:0 0 4px}
 .main{min-height:0}
 .details-close{margin-left:auto;width:34px;height:34px;border:0;border-radius:50%;background:transparent;color:#54656f;display:grid;place-items:center;cursor:pointer}.details-close svg{width:20px}.details-close:hover{background:#e3e8eb}
 @media(max-width:900px){.details-close{display:none}}
+.sector-select{border:1px solid var(--line);border-radius:8px;padding:5px 6px;font:inherit;font-size:12px;max-width:100%}

@@ -5,6 +5,16 @@ import { env } from "../config/env.js";
 import { PRIORITIES, CONVERSATION_STATUSES, MESSAGE_TYPES } from "../constants/enums.js";
 import { recordAudit } from "../services/auditLog.js";
 import { computeSla } from "../constants/sla.js";
+import { conversationScope } from "../services/access.js";
+
+// Conversa que este usuário pode ver (atendente: só as atribuídas a ele).
+// Fora do alcance responde 404, como se não existisse.
+async function findAccessible(req, include) {
+  return prisma.conversation.findFirst({
+    where: { AND: [{ id: req.params.id }, await conversationScope(req.user)] },
+    ...(include && { include }),
+  });
+}
 
 function serializeConversation(conversation) {
   const lastMessage = conversation.messages?.[0];
@@ -28,6 +38,7 @@ function serializeConversation(conversation) {
 
 export async function listConversations(req, res) {
   const conversations = await prisma.conversation.findMany({
+    where: await conversationScope(req.user),
     include: {
       contact: true,
       sector: true,
@@ -54,10 +65,7 @@ export async function listConversations(req, res) {
 }
 
 export async function getConversation(req, res) {
-  const conversation = await prisma.conversation.findUnique({
-    where: { id: req.params.id },
-    include: { contact: true, sector: true, assignedAgent: true },
-  });
+  const conversation = await findAccessible(req, { contact: true, sector: true, assignedAgent: true });
   if (!conversation) return res.status(404).json({ error: "Conversa não encontrada" });
   res.json(conversation);
 }
@@ -70,6 +78,8 @@ export async function updateConversation(req, res) {
   if (status && !CONVERSATION_STATUSES.includes(status)) {
     return res.status(400).json({ error: "Status inválido" });
   }
+
+  if (!(await findAccessible(req))) return res.status(404).json({ error: "Conversa não encontrada" });
 
   const conversation = await prisma.conversation.update({
     where: { id: req.params.id },
@@ -101,7 +111,7 @@ export async function updateConversation(req, res) {
 }
 
 export async function listMessages(req, res) {
-  const conversation = await prisma.conversation.findUnique({ where: { id: req.params.id } });
+  const conversation = await findAccessible(req);
   if (!conversation) return res.status(404).json({ error: "Conversa não encontrada" });
 
   const messages = await prisma.message.findMany({
@@ -124,10 +134,7 @@ export async function createMessage(req, res) {
   if (!body?.trim()) return res.status(400).json({ error: "Mensagem vazia" });
   if (!MESSAGE_TYPES.includes(type)) return res.status(400).json({ error: "Tipo de mensagem inválido" });
 
-  const conversation = await prisma.conversation.findUnique({
-    where: { id: req.params.id },
-    include: { contact: true },
-  });
+  const conversation = await findAccessible(req, { contact: true });
   if (!conversation) return res.status(404).json({ error: "Conversa não encontrada" });
 
   let whatsappMessageId;
@@ -155,10 +162,7 @@ export async function createMessage(req, res) {
 export async function uploadMedia(req, res) {
   if (!req.file) return res.status(400).json({ error: "Nenhum arquivo enviado" });
 
-  const conversation = await prisma.conversation.findUnique({
-    where: { id: req.params.id },
-    include: { contact: true },
-  });
+  const conversation = await findAccessible(req, { contact: true });
   if (!conversation) return res.status(404).json({ error: "Conversa não encontrada" });
 
   const mediaUrl = `/uploads/${req.file.filename}`;

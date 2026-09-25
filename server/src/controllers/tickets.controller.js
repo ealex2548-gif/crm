@@ -2,12 +2,13 @@ import { prisma } from "../config/prisma.js";
 import { getIO } from "../websocket/index.js";
 import { PRIORITIES, TICKET_STATUSES } from "../constants/enums.js";
 import { recordAudit } from "../services/auditLog.js";
+import { ticketScope, canAccessConversation, isAgent } from "../services/access.js";
 
 export async function listTickets(req, res) {
   // ?conversationId=... → só os tickets daquela conversa (botão do Atendimento).
   const { conversationId } = req.query;
   const tickets = await prisma.ticket.findMany({
-    where: conversationId ? { conversationId: String(conversationId) } : undefined,
+    where: { AND: [conversationId ? { conversationId: String(conversationId) } : {}, await ticketScope(req.user)] },
     include: { contact: true, owner: true },
     orderBy: { createdAt: "desc" },
   });
@@ -22,6 +23,12 @@ export async function createTicket(req, res) {
   if (!PRIORITIES.includes(priority)) {
     return res.status(400).json({ error: "Prioridade inválida" });
   }
+  // Atendente só abre ticket de conversa que ele pode ver; sem dono informado,
+  // o ticket fica no nome dele (senão ele mesmo deixaria de enxergá-lo).
+  if (isAgent(req.user) && conversationId && !(await canAccessConversation(req.user, conversationId))) {
+    return res.status(404).json({ error: "Conversa não encontrada" });
+  }
+  const owner = ownerId ?? (isAgent(req.user) ? req.user.sub : undefined);
 
   const ticket = await prisma.ticket.create({
     data: {
@@ -29,7 +36,7 @@ export async function createTicket(req, res) {
       conversationId,
       title: title.trim(),
       priority,
-      ownerId,
+      ownerId: owner,
       deadline: deadline ? new Date(deadline) : undefined,
       status: "NOVO",
     },
@@ -44,7 +51,7 @@ export async function createTicket(req, res) {
     metadata: { title: ticket.title, priority: ticket.priority },
   });
 
-  getIO()?.emit("ticket:updated", ticket);
+  getIO()?.emit("ticket:updated", { id: ticket.id });
   res.status(201).json(ticket);
 }
 
@@ -56,6 +63,12 @@ export async function updateTicket(req, res) {
   if (priority && !PRIORITIES.includes(priority)) {
     return res.status(400).json({ error: "Prioridade inválida" });
   }
+
+  const visible = await prisma.ticket.findFirst({
+    where: { AND: [{ id: req.params.id }, await ticketScope(req.user)] },
+    select: { id: true },
+  });
+  if (!visible) return res.status(404).json({ error: "Ticket não encontrado" });
 
   const ticket = await prisma.ticket.update({
     where: { id: req.params.id },
@@ -75,6 +88,6 @@ export async function updateTicket(req, res) {
     metadata: { status, priority, ownerId },
   });
 
-  getIO()?.emit("ticket:updated", ticket);
+  getIO()?.emit("ticket:updated", { id: ticket.id });
   res.json(ticket);
 }

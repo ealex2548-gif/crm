@@ -106,8 +106,10 @@ test("/api/auth/me retorna o usuário do token", async () => {
 });
 
 test("conversa criada aparece na listagem da API", async () => {
+  // No setor do atendente de teste — atendente só vê conversas do setor dele ou atribuídas a ele.
+  const sector = await prisma.sector.findFirst({ where: { name: "Suporte" } });
   const conversation = await prisma.conversation.create({
-    data: { contactId, priority: "NORMAL", status: "EM_ATENDIMENTO" },
+    data: { contactId, priority: "NORMAL", status: "EM_ATENDIMENTO", sectorId: sector.id },
   });
   conversationId = conversation.id;
 
@@ -334,8 +336,9 @@ test("SLA: última mensagem do cliente conta o prazo, resposta do agente zera", 
     await request(app).post("/api/auth/login").send({ email: "agente@test.com", password: "novaSenha123" })
   ).body.token;
 
+  const sector = await prisma.sector.findFirst({ where: { name: "Suporte" } });
   const conv = await prisma.conversation.create({
-    data: { contactId, priority: "URGENTE", status: "EM_ATENDIMENTO" },
+    data: { contactId, priority: "URGENTE", status: "EM_ATENDIMENTO", sectorId: sector.id },
   });
 
   // 20 min atrás — já estoura o SLA de urgente (15 min)
@@ -432,4 +435,51 @@ test("tickets podem ser filtrados pela conversa", async () => {
 
   const none = await request(app).get("/api/tickets?conversationId=nao-existe").set(auth);
   assert.deepEqual(none.body, []);
+});
+
+test("visibilidade: atendente vê só as conversas atribuídas a ele ou do setor dele", async () => {
+  const auth = (t) => ({ Authorization: `Bearer ${t}` });
+  const agent = await prisma.user.findUnique({ where: { email: "agente@test.com" } });
+  const outroSetor = await prisma.sector.create({ data: { name: "Financeiro Teste" } });
+  const pessoal = await prisma.contact.create({ data: { name: "Mãe", phone: "+5592900000001" } });
+
+  // Sem setor e sem responsável (ex.: conversa pessoal do dono) — só admin/supervisor.
+  const semDono = await prisma.conversation.create({ data: { contactId: pessoal.id, status: "EM_ATENDIMENTO" } });
+  // De outro setor — atendente do Suporte não vê.
+  const deOutroSetor = await prisma.conversation.create({ data: { contactId: pessoal.id, status: "EM_ATENDIMENTO", sectorId: outroSetor.id } });
+  // De outro setor mas atribuída a ele — vê.
+  const atribuida = await prisma.conversation.create({ data: { contactId: pessoal.id, status: "EM_ATENDIMENTO", sectorId: outroSetor.id, assignedAgentId: agent.id } });
+
+  const lista = (await request(app).get("/api/conversations").set(auth(agentToken))).body.map((c) => c.id);
+  assert.ok(!lista.includes(semDono.id), "conversa sem setor/responsável não pode aparecer para atendente");
+  assert.ok(!lista.includes(deOutroSetor.id), "conversa de outro setor não pode aparecer");
+  assert.ok(lista.includes(atribuida.id), "conversa atribuída a ele deve aparecer");
+  assert.ok(lista.includes(conversationId), "conversa do setor dele deve aparecer");
+
+  // Nem por outro caminho: abrir, ler mensagens, enviar, mudar ou abrir ticket.
+  for (const id of [semDono.id, deOutroSetor.id]) {
+    assert.equal((await request(app).get(`/api/conversations/${id}`).set(auth(agentToken))).status, 404);
+    assert.equal((await request(app).get(`/api/conversations/${id}/messages`).set(auth(agentToken))).status, 404);
+    assert.equal((await request(app).post(`/api/conversations/${id}/messages`).set(auth(agentToken)).send({ body: "oi" })).status, 404);
+    assert.equal((await request(app).patch(`/api/conversations/${id}`).set(auth(agentToken)).send({ assignedAgentId: agent.id })).status, 404);
+    assert.equal((await request(app).post("/api/tickets").set(auth(agentToken)).send({ contactId: pessoal.id, conversationId: id, title: "x" })).status, 404);
+  }
+
+  // Admin vê tudo.
+  const listaAdmin = (await request(app).get("/api/conversations").set(auth(adminToken))).body.map((c) => c.id);
+  assert.ok([semDono.id, deOutroSetor.id, atribuida.id].every((id) => listaAdmin.includes(id)));
+
+  // Admin muda o setor do atendente para "Financeiro Teste": passa a ver a de lá, e deixa de ver a do Suporte.
+  const mudou = await request(app).patch(`/api/users/${agent.id}/sector`).set(auth(adminToken)).send({ sectorId: outroSetor.id });
+  assert.equal(mudou.status, 200);
+  const depois = (await request(app).get("/api/conversations").set(auth(agentToken))).body.map((c) => c.id);
+  assert.ok(depois.includes(deOutroSetor.id));
+  assert.ok(!depois.includes(conversationId));
+
+  // Atendente não muda setor de ninguém.
+  assert.equal((await request(app).patch(`/api/users/${agent.id}/sector`).set(auth(agentToken)).send({ sectorId: null })).status, 403);
+
+  // Volta o setor original para não afetar outros testes.
+  const suporte = await prisma.sector.findFirst({ where: { name: "Suporte" } });
+  await prisma.user.update({ where: { id: agent.id }, data: { sectorId: suporte.id } });
 });

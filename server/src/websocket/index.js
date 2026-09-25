@@ -1,6 +1,7 @@
 import { Server } from "socket.io";
 import { verifyToken } from "../utils/jwt.js";
 import { env } from "../config/env.js";
+import { canAccessConversation } from "../services/access.js";
 
 let ioInstance;
 
@@ -18,7 +19,7 @@ export function getIO() {
  * Eventos emitidos:
  *   "message:new"          -> sala "conversation:<id>"
  *   "conversation:updated" -> sala "conversation:<id>"
- *   "ticket:updated"       -> broadcast geral (Kanban/Tickets não têm sala própria ainda)
+ *   "ticket:updated"       -> broadcast geral só com { id } (as telas recarregam pela API, que filtra por permissão)
  * Eventos recebidos:
  *   "conversation:join" (conversationId) -> entra na sala da conversa
  *   "conversation:leave" (conversationId) -> sai da sala ao trocar de conversa
@@ -43,8 +44,11 @@ export function createWebSocketServer(httpServer) {
   io.on("connection", (socket) => {
     console.log(`[ws] conectado: ${socket.data.user?.name ?? socket.id}`);
 
-    socket.on("conversation:join", (conversationId) => {
-      socket.join(`conversation:${conversationId}`);
+    // Só entra na sala (e recebe as mensagens em tempo real) de conversa que pode ver.
+    socket.on("conversation:join", async (conversationId) => {
+      if (await canAccessConversation(socket.data.user, String(conversationId))) {
+        socket.join(`conversation:${conversationId}`);
+      }
     });
 
     socket.on("conversation:leave", (conversationId) => {

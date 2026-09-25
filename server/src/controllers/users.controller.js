@@ -53,7 +53,7 @@ export async function createUser(req, res) {
 // de "responsável" nas conversas/tickets.
 export async function listAllUsers(req, res) {
   const users = await prisma.user.findMany({
-    select: { id: true, name: true, email: true, role: true, active: true, sector: { select: { name: true } } },
+    select: { id: true, name: true, email: true, role: true, active: true, sector: { select: { id: true, name: true } } },
     orderBy: [{ active: "desc" }, { name: "asc" }],
   });
   res.json(users);
@@ -91,6 +91,40 @@ export async function setUserActive(req, res) {
     entityType: "User",
     entityId: user.id,
     metadata: { targetEmail: user.email },
+  });
+
+  res.json(user);
+}
+
+// Setor do usuário define quais conversas o atendente vê (as do setor dele —
+// ver services/access.js). Admin e Supervisor podem mudar o setor de atendentes.
+export async function setUserSector(req, res) {
+  const { sectorId } = req.body ?? {};
+  if (sectorId !== null && typeof sectorId !== "string") {
+    return res.status(400).json({ error: "Informe sectorId (ou null para sem setor)" });
+  }
+
+  const target = await prisma.user.findUnique({ where: { id: req.params.id } });
+  if (!target) return res.status(404).json({ error: "Usuário não encontrado" });
+  if (req.user.role === "SUPERVISOR" && target.role !== "AGENT") {
+    return res.status(403).json({ error: "Supervisor só pode mudar o setor de atendentes" });
+  }
+  if (sectorId && !(await prisma.sector.findUnique({ where: { id: sectorId } }))) {
+    return res.status(400).json({ error: "Setor inválido" });
+  }
+
+  const user = await prisma.user.update({
+    where: { id: req.params.id },
+    data: { sectorId },
+    select: { id: true, name: true, email: true, role: true, active: true, sector: { select: { id: true, name: true } } },
+  });
+
+  await recordAudit({
+    userId: req.user.sub,
+    action: "user.sectorChanged",
+    entityType: "User",
+    entityId: user.id,
+    metadata: { targetEmail: user.email, sector: user.sector?.name ?? null },
   });
 
   res.json(user);

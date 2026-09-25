@@ -21,3 +21,10 @@ export async function setUserActive(userId, active) {
     body: JSON.stringify({ active }),
   });
 }
+
+export async function setUserSector(userId, sectorId) {
+  return apiFetch(`/api/users/${userId}/sector`, {
+    method: "PATCH",
+    body: JSON.stringify({ sectorId: sectorId || null }),
+  });
+}

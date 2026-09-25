@@ -1,5 +1,5 @@
 import{useEffect,useState}from"react";
-import{createUser,getAllUsers,setUserActive}from"../services/usersService";
+import{createUser,getAllUsers,setUserActive,setUserSector}from"../services/usersService";
 import{getAuditLogs}from"../services/auditLogService";
 import{apiFetch}from"../services/apiClient";
 import{Badge}from"../components/common/Badge";
@@ -25,8 +25,8 @@ const reloadUsers=()=>canManageUsers&&getAllUsers().then((u)=>{setUsers(u);setUs
 const reloadLogs=()=>getAuditLogs().then(setLogs);
 
 useEffect(()=>{
-if(isAdmin)apiFetch("/api/sectors").then(setSectors);
-},[isAdmin]);
+if(canManageUsers)apiFetch("/api/sectors").then(setSectors);
+},[canManageUsers]);
 
 useEffect(()=>{reloadUsers()},[canManageUsers]);
 
@@ -52,6 +52,17 @@ setCreating(false);
 };
 
 const canToggle=(target)=>target.id!==user.id&&(isAdmin||target.role==="AGENT");
+
+// O setor define quais conversas o atendente vê (as do setor + as atribuídas a ele).
+const handleSector=async(target,sectorId)=>{
+try{
+await setUserSector(target.id,sectorId);
+reloadUsers();
+reloadLogs();
+}catch(err){
+setMessage({type:"error",text:err.message});
+}
+};
 
 const handleToggle=async(target)=>{
 try{
@@ -88,7 +99,7 @@ return <div className="page">
 <span>{u.name}</span>
 <span>{u.email}</span>
 <span>{ROLE_LABELS[u.role]??u.role}</span>
-<span>{u.sector?.name??"—"}</span>
+<span>{canToggle(u)?<select className="sector-select" value={u.sector?.id??""} onChange={(e)=>handleSector(u,e.target.value)}><option value="">Sem setor</option>{sectors.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select>:(u.sector?.name??"—")}</span>
 <span><Badge tone={u.active?"success":"danger"}>{u.active?"Ativo":"Inativo"}</Badge></span>
 <span>{canToggle(u)?<button className="secondary" onClick={()=>handleToggle(u)}>{u.active?"Desativar":"Ativar"}</button>:null}</span>
 </div>)}
